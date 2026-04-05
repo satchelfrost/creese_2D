@@ -92,6 +92,7 @@ int main(int argc, char **argv)
     if (!build_example_linux(&cmd, "example_circle"))    return 1;
     if (!build_example_linux(&cmd, "example_image"))     return 1;
     if (!build_example_linux(&cmd, "example_animation")) return 1;
+    if (!build_example_linux(&cmd, "example_text"))      return 1;
 
     return 0;
 }

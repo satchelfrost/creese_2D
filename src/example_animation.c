@@ -35,6 +35,7 @@ int main()
         end_drawing();
     }
 
+    unload_image(image);
     close_window();
     return 0;
 }
