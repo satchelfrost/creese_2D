@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define LADEF extern
+#define LADEF
 #include "./external/la.h"
 
 /* colors stolen from raylib - https://github.com/raysan5/raylib */

@@ -17,6 +17,9 @@ static int win_height = 0;
 #define STB_IMAGE_IMPLEMENTATION
 #include "../external/stb_image.h"
 
+#define LA_IMPLEMENTATION
+#include "../external/la.h"
+
 /* modules */
 #include "time_keep.c"
 
