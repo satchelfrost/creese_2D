@@ -76,7 +76,7 @@ void draw_circle(int x, int y, int radius, Color color);
 void draw_triangle(V2i v0, V2i v1, V2i v2, Color color);
 void draw_triangle_wireframe(V2i v0, V2i v1, V2i v2, Color color);
 void draw_rectangle(Rectangle rectangle, Color color);
-void draw_line(V2i start, V2i end, Color color);
+void draw_line(int x0, int y0, int x1, int y1, Color color);
 void draw_aabb_2D(AABB_2D aabb, Color color);
 
 /* Image */

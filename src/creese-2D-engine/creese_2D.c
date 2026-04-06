@@ -104,9 +104,9 @@ void draw_rectangle(Rectangle r, Color color)
     swr_draw_rectangle(frame_buff, r.x, r.y, r.width, r.height, color_to_uint32_t(color));
 }
 
-void draw_line(V2i start, V2i end, Color color)
+void draw_line(int x0, int y0, int x1, int y1, Color color)
 {
-    swr_draw_line(frame_buff, start.x, start.y, end.x, end.y, color_to_uint32_t(color));
+    swr_draw_line(frame_buff, x0, y0, x1, y1, color_to_uint32_t(color));
 }
 
 Image load_image(const char *image_path)
