@@ -77,6 +77,7 @@ void draw_triangle(V2i v0, V2i v1, V2i v2, Color color);
 void draw_triangle_wireframe(V2i v0, V2i v1, V2i v2, Color color);
 void draw_rectangle(Rectangle rectangle, Color color);
 void draw_line(V2i start, V2i end, Color color);
+void draw_aabb_2D(AABB_2D aabb, Color color);
 
 /* Image */
 Image load_image(const char *image_path);
@@ -88,7 +89,6 @@ void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x,
 
 /* misc */
 AABB_2D get_triangle_aabb(V2i v0, V2i v1, V2i v2);
-void draw_aabb_2D(AABB_2D aabb, Color color);
 uint32_t color_to_uint32_t(Color color);
 
 /* time_keep.c */

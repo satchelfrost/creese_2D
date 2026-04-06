@@ -86,10 +86,10 @@ void swr_draw_circle(uint8_t *buff, int x0, int y0, int radius, uint32_t color)
 
 void swr_draw_rectangle(uint8_t *buff, int x0, int y0, int w, int h, uint32_t color)
 {
-    for (int y = 0; y < h; y++) {
+    for (int y = 0; y <= h; y++) {
         int yp = y + y0;
         if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
-        for (int x = 0; x < w; x++) {
+        for (int x = 0; x <= w; x++) {
             int xp = x + x0;
             if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
             uint32_t src       = ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH + xp];
