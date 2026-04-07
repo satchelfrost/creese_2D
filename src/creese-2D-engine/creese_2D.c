@@ -8,20 +8,9 @@ static int win_height = 0;
 #include "swr.h"
 
 #define NOB_STRIP_PREFIX
-#define NOB_IMPLEMENTATION
 #include "../../nob.h"
-
-#define STB_IMAGE_IMPLEMENTATION
 #include "../external/stb_image.h"
-
-#define LA_IMPLEMENTATION
-#include "../external/la.h"
-
-#define STB_TRUETYPE_IMPLEMENTATION
 #include "../external/stb_truetype.h"
-
-#define RGFW_IMPLEMENTATION
-#include "../external/RGFW.h"
 
 /* modules */
 #include "time_keep.c"

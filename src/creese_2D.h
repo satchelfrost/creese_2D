@@ -8,6 +8,9 @@
 #define LADEF
 #include "./external/la.h"
 
+#define RGFWDEF extern
+#include "./external/RGFW.h"
+
 /* colors stolen from raylib - https://github.com/raysan5/raylib */
 #define LIGHTGRAY  (Color){ 200, 200, 200, 255 }
 #define GRAY       (Color){ 130, 130, 130, 255 }

@@ -1,8 +1,5 @@
 #include "creese_2D.h"
 
-#define RGFWDEF extern
-#include "./external/RGFW.h"
-
 int main()
 {
     Creese_Font font = load_font("assets/RobotoMono-Medium.ttf", 32);

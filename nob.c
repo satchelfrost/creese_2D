@@ -7,6 +7,7 @@
 #define SRC "src/"
 #define EXAMPLES "examples/"
 #define ENGINE SRC"creese-2D-engine/"
+#define EXTERNAL SRC"external/"
 
 /* if any of these files get touched creese is rebuilt */
 const char *creese_2D_srcs[] = {
@@ -15,6 +16,52 @@ const char *creese_2D_srcs[] = {
     ENGINE"time_keep.c",
     ENGINE"swr.h",
 };
+
+bool build_header_only_libraries(Cmd *cmd, bool force)
+{
+    int res = 0;
+    res = needs_rebuild1(LINUX"la.o", EXTERNAL"la.h");
+    if (res < 0) return false;
+    res = needs_rebuild1(LINUX"RGFW.o", EXTERNAL"RGFW.h");
+    if (res < 0) return false;
+    res = needs_rebuild1(LINUX"stb_image.o", EXTERNAL"stb_image.h");
+    if (res < 0) return false;
+    res = needs_rebuild1(LINUX"stb_truetype.o", EXTERNAL"stb_truetype.h");
+    if (res < 0) return false;
+    if (!res &&!force) return true;
+
+    cmd_append(cmd, "gcc", "-g");
+    cmd_append(cmd, "-DLA_IMPLEMENTATION", "-DLADEF=static");
+    cmd_append(cmd, "-x", "c", EXTERNAL"la.h");
+    cmd_append(cmd, "-c", "-o", LINUX"la.o");
+    if (!cmd_run(cmd)) return false;
+
+    cmd_append(cmd, "gcc", "-g");
+    cmd_append(cmd, "-DRGFW_IMPLEMENTATION");
+    cmd_append(cmd, "-x", "c", EXTERNAL"RGFW.h");
+    cmd_append(cmd, "-c", "-o", LINUX"RGFW.o");
+    if (!cmd_run(cmd)) return false;
+
+    cmd_append(cmd, "gcc", "-g");
+    cmd_append(cmd, "-DSTB_IMAGE_IMPLEMENTATION");
+    cmd_append(cmd, "-x", "c", EXTERNAL"stb_image.h");
+    cmd_append(cmd, "-c", "-o", LINUX"stb_image.o");
+    if (!cmd_run(cmd)) return false;
+
+    cmd_append(cmd, "gcc", "-g");
+    cmd_append(cmd, "-DSTB_TRUETYPE_IMPLEMENTATION");
+    cmd_append(cmd, "-x", "c", EXTERNAL"stb_truetype.h");
+    cmd_append(cmd, "-c", "-o", LINUX"stb_truetype.o");
+    if (!cmd_run(cmd)) return false;
+
+    cmd_append(cmd, "gcc", "-g");
+    cmd_append(cmd, "-DNOB_IMPLEMENTATION");
+    cmd_append(cmd, "-x", "c", "nob.h");
+    cmd_append(cmd, "-c", "-o", LINUX"nob.o");
+    if (!cmd_run(cmd)) return false;
+
+    return true;
+}
 
 bool build_creese_2D_linux(Cmd *cmd, bool force)
 {
@@ -39,9 +86,16 @@ bool build_example_linux(Cmd *cmd, const char *example_name)
     if (src_touched < 0 || creese_touched < 0) return false;
     if (!src_touched && !creese_touched) return true;
 
+
     cmd_append(cmd, "gcc", "-Wall", "-Wextra", "-Werror", "-g");
+    cmd_append(cmd, LINUX"nob.o");
+    cmd_append(cmd, LINUX"la.o");
+    cmd_append(cmd, LINUX"RGFW.o");
+    cmd_append(cmd, LINUX"stb_image.o");
+    cmd_append(cmd, LINUX"stb_truetype.o");
+    cmd_append(cmd, LINUX"creese_2D.o");
+    cmd_append(cmd, src);
     cmd_append(cmd, "-o", exec);
-    cmd_append(cmd, src, LINUX"creese_2D.o");
     cmd_append(cmd, "-lm", "-lXrandr", "-lX11");
     return cmd_run(cmd);
 }
@@ -89,11 +143,13 @@ int main(int argc, char **argv)
     if (!mkdir_if_not_exists(LINUX)) return 1;
 
     Cmd cmd = {0};
-    if (!build_creese_2D_linux(&cmd, config.clean))      return 1;
-    if (!build_example_linux(&cmd, "example_circle"))    return 1;
-    if (!build_example_linux(&cmd, "example_image"))     return 1;
-    if (!build_example_linux(&cmd, "example_animation")) return 1;
-    if (!build_example_linux(&cmd, "example_text"))      return 1;
+
+    if (!build_header_only_libraries(&cmd, config.clean)) return 1;
+    if (!build_creese_2D_linux(&cmd, config.clean))       return 1;
+    if (!build_example_linux(&cmd, "example_circle"))     return 1;
+    if (!build_example_linux(&cmd, "example_image"))      return 1;
+    if (!build_example_linux(&cmd, "example_animation"))  return 1;
+    if (!build_example_linux(&cmd, "example_text"))       return 1;
 
     return 0;
 }
