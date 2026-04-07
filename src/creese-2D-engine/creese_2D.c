@@ -1,8 +1,5 @@
 #include "../creese_2D.h"
 
-#define RGFW_IMPLEMENTATION
-#include "../external/RGFW.h"
-
 static int win_width = 0;
 static int win_height = 0;
 #define SWR_FRAME_WIDTH win_width 
@@ -20,6 +17,12 @@ static int win_height = 0;
 #define LA_IMPLEMENTATION
 #include "../external/la.h"
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "../external/stb_truetype.h"
+
+#define RGFW_IMPLEMENTATION
+#include "../external/RGFW.h"
+
 /* modules */
 #include "time_keep.c"
 
@@ -30,6 +33,9 @@ static RGFW_window *window = NULL;
 static RGFW_event event = {0};
 static RGFW_surface *surface = NULL;
 static uint8_t *frame_buff = NULL;
+
+#define DEFAULT_BITMAP_WIDTH 180
+#define DEFAULT_BITMAP_HEIGHT 170
 
 uint8_t *get_frame_buffer()
 {
@@ -104,6 +110,11 @@ void draw_rectangle(Rectangle r, Color color)
     swr_draw_rectangle(frame_buff, r.x, r.y, r.width, r.height, color_to_uint32_t(color));
 }
 
+void draw_rectangle_lines(Rectangle rectangle, Color color)
+{
+    swr_draw_aabb_2D(frame_buff, rectangle.x, rectangle.y, rectangle.width, rectangle.height, color_to_uint32_t(color));
+}
+
 void draw_line(int x0, int y0, int x1, int y1, Color color)
 {
     swr_draw_line(frame_buff, x0, y0, x1, y1, color_to_uint32_t(color));
@@ -148,21 +159,66 @@ void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x,
                                r.x, r.y, r.width, r.height, scale_x, scale_y);
 }
 
-AABB_2D get_triangle_aabb(V2i v0, V2i v1, V2i v2)
+Creese_Font load_font(const char *file_path, int font_height)
+{
+    bool result = true;
+
+    Creese_Font font = {
+        .bitmap_width = DEFAULT_BITMAP_WIDTH,
+        .bitmap_height = DEFAULT_BITMAP_HEIGHT,
+        .bitmap = malloc(DEFAULT_BITMAP_WIDTH*DEFAULT_BITMAP_HEIGHT),
+        .height = font_height,
+    };
+
+    String_Builder sb = {0};
+    if (!read_entire_file(file_path, &sb)) return_defer(false);
+    stbtt_BakeFontBitmap((unsigned char *)sb.items, 0, font.height, font.bitmap,
+                         font.bitmap_width, font.bitmap_height, FIRST_CHAR, CHAR_COUNT, (stbtt_bakedchar*)font.glyphs);
+
+defer:
+    sb_free(sb);
+    if (!result) {
+        free(font.bitmap);
+    }
+    return font;
+}
+
+void unload_font(Creese_Font font)
+{
+    free(font.bitmap);
+}
+
+void draw_text_at_base(Creese_Font font, const char *text, size_t text_len, int x, int y, Color color)
+{
+    int x_adv = 0;
+    for (size_t c = 0; c < text_len; c++) {
+        uint8_t ch = text[c];
+        if (!(FIRST_CHAR <= ch && ch < (CHAR_COUNT + FIRST_CHAR))) continue;
+        Creese_Glyph glyph = font.glyphs[ch-FIRST_CHAR];
+        int i, j;   // bitmap index
+        int xp, yp; // pen position
+        for (i = glyph.y0, yp = y; i <= glyph.y1; i++, yp++) {
+            for (j = glyph.x0, xp = x; j <= glyph.x1; j++, xp++) {
+                color.a = font.bitmap[i*DEFAULT_BITMAP_WIDTH + j];
+                int coord_x = xp + glyph.x_offset + x_adv;
+                int coord_y = yp + glyph.y_offset;
+                if (color.a) draw_pixel(coord_x, coord_y, color);
+            }
+        }
+        x_adv += glyph.x_advance;
+    }
+}
+
+Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2)
 {
     V4i aabb_2D;
     swr_triangle_aabb(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, aabb_2D.c);
-    return (AABB_2D) {
-        .x_min = aabb_2D.x,
-        .y_min = aabb_2D.y,
-        .x_max = aabb_2D.z,
-        .y_max = aabb_2D.w,
+    return (Rectangle) {
+        .x      = aabb_2D.x,
+        .y      = aabb_2D.y,
+        .width  = aabb_2D.z,
+        .height = aabb_2D.w,
     };
-}
-
-void draw_aabb_2D(AABB_2D aabb, Color color)
-{
-    swr_draw_aabb_2D(frame_buff, aabb.x_min, aabb.y_min, aabb.x_max, aabb.y_max, color_to_uint32_t(color));
 }
 
 uint32_t color_to_uint32_t(Color color)

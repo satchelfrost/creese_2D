@@ -2,6 +2,7 @@
 #define CREESE_2D_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 #define LADEF
@@ -61,6 +62,22 @@ typedef struct {
     int y_max;
 } AABB_2D;
 
+typedef struct {
+   unsigned short x0, y0, x1, y1;
+   float x_offset, y_offset, x_advance;
+} Creese_Glyph;
+
+#define CHAR_COUNT 96
+#define FIRST_CHAR 32
+
+typedef struct {
+    float height;
+    int bitmap_width;
+    int bitmap_height;
+    uint8_t *bitmap;
+    Creese_Glyph glyphs[CHAR_COUNT]; // ASCII 32..126 is 95 glyphs
+} Creese_Font;
+
 /* general */
 uint8_t *get_frame_buffer();
 void init_window(int width, int height, char *title);
@@ -76,8 +93,8 @@ void draw_circle(int x, int y, int radius, Color color);
 void draw_triangle(V2i v0, V2i v1, V2i v2, Color color);
 void draw_triangle_wireframe(V2i v0, V2i v1, V2i v2, Color color);
 void draw_rectangle(Rectangle rectangle, Color color);
+void draw_rectangle_lines(Rectangle rectangle, Color color);
 void draw_line(int x0, int y0, int x1, int y1, Color color);
-void draw_aabb_2D(AABB_2D aabb, Color color);
 
 /* Image */
 Image load_image(const char *image_path);
@@ -87,8 +104,13 @@ void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y);
 void draw_image_rect(Image image, Rectangle r, int x, int y);
 void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
 
+/* Text */
+Creese_Font load_font(const char *file_path, int font_height);
+void unload_font(Creese_Font font);
+void draw_text_at_base(Creese_Font font, const char *text, size_t text_len, int x, int y, Color color);
+
 /* misc */
-AABB_2D get_triangle_aabb(V2i v0, V2i v1, V2i v2);
+Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
 uint32_t color_to_uint32_t(Color color);
 
 /* time_keep.c */
