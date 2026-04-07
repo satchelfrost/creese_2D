@@ -148,11 +148,11 @@ void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x,
                                r.x, r.y, r.width, r.height, scale_x, scale_y);
 }
 
-Creese_Font load_font(const char *file_path, int font_height)
+Font load_font(const char *file_path, int font_height)
 {
     bool result = true;
 
-    Creese_Font font = {
+    Font font = {
         .bitmap_width = DEFAULT_BITMAP_WIDTH,
         .bitmap_height = DEFAULT_BITMAP_HEIGHT,
         .bitmap = malloc(DEFAULT_BITMAP_WIDTH*DEFAULT_BITMAP_HEIGHT),
@@ -172,18 +172,18 @@ defer:
     return font;
 }
 
-void unload_font(Creese_Font font)
+void unload_font(Font font)
 {
     free(font.bitmap);
 }
 
-void draw_text_at_base(Creese_Font font, const char *text, size_t text_len, int x, int y, Color color)
+void draw_text_at_base(Font font, const char *text, size_t text_len, int x, int y, Color color)
 {
     int x_adv = 0;
     for (size_t c = 0; c < text_len; c++) {
         uint8_t ch = text[c];
         if (!(FIRST_CHAR <= ch && ch < (CHAR_COUNT + FIRST_CHAR))) continue;
-        Creese_Glyph glyph = font.glyphs[ch-FIRST_CHAR];
+        Glyph glyph = font.glyphs[ch-FIRST_CHAR];
         int i, j;   // bitmap index
         int xp, yp; // pen position
         for (i = glyph.y0, yp = y; i <= glyph.y1; i++, yp++) {

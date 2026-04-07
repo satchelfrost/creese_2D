@@ -68,7 +68,7 @@ typedef struct {
 typedef struct {
    unsigned short x0, y0, x1, y1;
    float x_offset, y_offset, x_advance;
-} Creese_Glyph;
+} Glyph;
 
 #define CHAR_COUNT 96
 #define FIRST_CHAR 32
@@ -78,8 +78,8 @@ typedef struct {
     int bitmap_width;
     int bitmap_height;
     uint8_t *bitmap;
-    Creese_Glyph glyphs[CHAR_COUNT]; // ASCII 32..126 is 95 glyphs
-} Creese_Font;
+    Glyph glyphs[CHAR_COUNT]; // ASCII 32..126 is 95 glyphs
+} Font;
 
 /* general */
 uint8_t *get_frame_buffer();
@@ -108,9 +108,9 @@ void draw_image_rect(Image image, Rectangle r, int x, int y);
 void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
 
 /* Text */
-Creese_Font load_font(const char *file_path, int font_height);
-void unload_font(Creese_Font font);
-void draw_text_at_base(Creese_Font font, const char *text, size_t text_len, int x, int y, Color color);
+Font load_font(const char *file_path, int font_height);
+void unload_font(Font font);
+void draw_text_at_base(Font font, const char *text, size_t text_len, int x, int y, Color color);
 
 /* misc */
 Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);

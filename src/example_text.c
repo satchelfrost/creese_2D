@@ -2,7 +2,7 @@
 
 int main()
 {
-    Creese_Font font = load_font("assets/RobotoMono-Medium.ttf", 32);
+    Font font = load_font("assets/RobotoMono-Medium.ttf", 32);
     int screen_width = 1400;
     int screen_height = 250;
     init_window(screen_width, screen_height, "example text");
