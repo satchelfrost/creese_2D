@@ -23,8 +23,8 @@ static RGFW_event event = {0};
 static RGFW_surface *surface = NULL;
 static uint8_t *frame_buff = NULL;
 
-#define DEFAULT_BITMAP_WIDTH 180
-#define DEFAULT_BITMAP_HEIGHT 170
+#define DEFAULT_BITMAP_WIDTH 400
+#define DEFAULT_BITMAP_HEIGHT 400
 
 uint8_t *get_frame_buffer()
 {
@@ -161,13 +161,19 @@ Font load_font(const char *file_path, int font_height)
 
     String_Builder sb = {0};
     if (!read_entire_file(file_path, &sb)) return_defer(false);
-    stbtt_BakeFontBitmap((unsigned char *)sb.items, 0, font.height, font.bitmap,
-                         font.bitmap_width, font.bitmap_height, FIRST_CHAR, CHAR_COUNT, (stbtt_bakedchar*)font.glyphs);
+    int res = stbtt_BakeFontBitmap((unsigned char *)sb.items, 0, font.height, font.bitmap,
+                                   font.bitmap_width, font.bitmap_height, FIRST_CHAR, CHAR_COUNT,
+                                   (stbtt_bakedchar*)font.glyphs);
+    if (res <= 0) return_defer(false);
 
 defer:
     sb_free(sb);
     if (!result) {
-        free(font.bitmap);
+        printf("ERROR: unable to fully bake font bitmap (return code: %d)\n", res);
+        printf("       if return is negative, returns the negative of the number of characters that fit\n");
+        printf("       if return is 0, no characters fit and no rows were used\n");
+        printf("       try increasing DEFAULT_BITMAP_WIDTH/HEIGHT in creese_2D.c\n");
+
     }
     return font;
 }
@@ -184,14 +190,43 @@ void draw_text_at_base(Font font, const char *text, size_t text_len, int x, int 
         uint8_t ch = text[c];
         if (!(FIRST_CHAR <= ch && ch < (CHAR_COUNT + FIRST_CHAR))) continue;
         Glyph glyph = font.glyphs[ch-FIRST_CHAR];
-        int i, j;   // bitmap index
-        int xp, yp; // pen position
-        for (i = glyph.y0, yp = y; i <= glyph.y1; i++, yp++) {
-            for (j = glyph.x0, xp = x; j <= glyph.x1; j++, xp++) {
-                color.a = font.bitmap[i*DEFAULT_BITMAP_WIDTH + j];
-                int coord_x = xp + glyph.x_offset + x_adv;
-                int coord_y = yp + glyph.y_offset;
-                if (color.a) draw_pixel(coord_x, coord_y, color);
+        int dy = glyph.y1 - glyph.y0 + 1;
+        int dx = glyph.x1 - glyph.x0 + 1;
+        for (int i = 0; i < dy ; i++) {
+            int yi = i + glyph.y0; // bitmap index
+            int yp = i + y + glyph.y_offset;    // pen position
+            if (!(0 <= yi && yi < DEFAULT_BITMAP_HEIGHT)) continue;
+            for (int j = 0; j < dx; j++) {
+                int xi = j + glyph.x0; // bitmap index
+                int xp = j + x + glyph.x_offset + x_adv; // pen position
+                if (!(0 <= xi && xi < DEFAULT_BITMAP_WIDTH)) continue;
+                color.a = font.bitmap[yi*DEFAULT_BITMAP_WIDTH + xi];
+                if (color.a) draw_pixel(xp, yp, color);
+            }
+        }
+        x_adv += glyph.x_advance;
+    }
+}
+
+void draw_text_at_base_scaled(Font font, const char *text, size_t text_len, int x, int y, Color color, int scale_x, int scale_y)
+{
+    int x_adv = 0;
+    for (size_t c = 0; c < text_len; c++) {
+        uint8_t ch = text[c];
+        if (!(FIRST_CHAR <= ch && ch < (CHAR_COUNT + FIRST_CHAR))) continue;
+        Glyph glyph = font.glyphs[ch-FIRST_CHAR];
+        int dy = glyph.y1 - glyph.y0 + 1;
+        int dx = glyph.x1 - glyph.x0 + 1;
+        for (int i = 0; i < dy*scale_y; i++) {
+            int yi = i/scale_y + glyph.y0;           // bitmap index
+            int yp = i + y + glyph.y_offset*scale_y; // pen position
+            if (!(0 <= yi && yi < DEFAULT_BITMAP_HEIGHT)) continue;
+            for (int j = 0; j < dx*scale_x; j++) {
+                int xi = j/scale_x + glyph.x0;                          // bitmap index
+                int xp = j + x+ glyph.x_offset*scale_x + x_adv*scale_x; // pen position
+                if (!(0 <= xi && xi < DEFAULT_BITMAP_WIDTH)) continue;
+                color.a = font.bitmap[yi*DEFAULT_BITMAP_WIDTH + xi];
+                if (color.a) draw_pixel(xp, yp, color);
             }
         }
         x_adv += glyph.x_advance;

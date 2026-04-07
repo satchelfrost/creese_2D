@@ -111,6 +111,7 @@ void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x,
 Font load_font(const char *file_path, int font_height);
 void unload_font(Font font);
 void draw_text_at_base(Font font, const char *text, size_t text_len, int x, int y, Color color);
+void draw_text_at_base_scaled(Font font, const char *text, size_t text_len, int x, int y, Color color, int scale_x, int scale_y);
 
 /* misc */
 Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
