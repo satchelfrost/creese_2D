@@ -18,171 +18,129 @@ const char *creese_2D_srcs[] = {
     ENGINE"swr.h",
 };
 
-bool build_header_only_libraries_linux(Cmd *cmd, bool force)
+const char *examples[] = {
+    "example_circle",
+    "example_image",
+    "example_animation",
+    "example_text",
+    "example_audio",
+};
+
+/* header only modules are precompiled */
+struct {
+    const char *name;
+    const char *impl_define;
+    const char *api_define;
+    const char *include_dir;
+} hdr_modules[] = {
+    {
+        .name = "la",
+        .impl_define = "-DLA_IMPLEMENTATION",
+        .api_define = "-DLADEF=static",
+        .include_dir = EXTERNAL,
+    },
+    {
+        .name = "RGFW",
+        .impl_define = "-DRGFW_IMPLEMENTATION",
+        .include_dir = EXTERNAL,
+    },
+    {
+        .name = "stb_image",
+        .impl_define = "-DSTB_IMAGE_IMPLEMENTATION",
+        .include_dir = EXTERNAL,
+    },
+    {
+        .name = "stb_truetype",
+        .impl_define = "-DSTB_TRUETYPE_IMPLEMENTATION",
+        .include_dir = EXTERNAL,
+    },
+    {
+        .name = "miniaudio",
+        .impl_define = "-DMINIAUDIO_IMPLEMENTATION",
+        .include_dir = EXTERNAL,
+    },
+    {
+        .name = "dr_wav",
+        .impl_define = "-DDR_WAV_IMPLEMENTATION",
+        .include_dir = EXTERNAL,
+    },
+    {
+        .name = "nob",
+        .impl_define = "-DNOB_IMPLEMENTATION",
+        .include_dir = "./",
+    },
+};
+
+
+bool build_header_only_libraries(Cmd *cmd, const char *target)
 {
-    int res = 0;
-    res = needs_rebuild1(LINUX"la.o", EXTERNAL"la.h");
-    if (res < 0) return false;
-    res = needs_rebuild1(LINUX"RGFW.o", EXTERNAL"RGFW.h");
-    if (res < 0) return false;
-    res = needs_rebuild1(LINUX"stb_image.o", EXTERNAL"stb_image.h");
-    if (res < 0) return false;
-    res = needs_rebuild1(LINUX"stb_truetype.o", EXTERNAL"stb_truetype.h");
-    if (res < 0) return false;
-    if (!res &&!force) return true;
-
-    cmd_append(cmd, "gcc", "-g");
-    cmd_append(cmd, "-DLA_IMPLEMENTATION", "-DLADEF=static");
-    cmd_append(cmd, "-x", "c", EXTERNAL"la.h");
-    cmd_append(cmd, "-c", "-o", LINUX"la.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "gcc", "-g");
-    cmd_append(cmd, "-DRGFW_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", EXTERNAL"RGFW.h");
-    cmd_append(cmd, "-c", "-o", LINUX"RGFW.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "gcc", "-g");
-    cmd_append(cmd, "-DSTB_IMAGE_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", EXTERNAL"stb_image.h");
-    cmd_append(cmd, "-c", "-o", LINUX"stb_image.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "gcc", "-g");
-    cmd_append(cmd, "-DSTB_TRUETYPE_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", EXTERNAL"stb_truetype.h");
-    cmd_append(cmd, "-c", "-o", LINUX"stb_truetype.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "gcc", "-g");
-    cmd_append(cmd, "-DNOB_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", "nob.h");
-    cmd_append(cmd, "-c", "-o", LINUX"nob.o");
-    if (!cmd_run(cmd)) return false;
-
+    for (size_t i = 0; i < ARRAY_LEN(hdr_modules); i++) {
+        const char *hdr = temp_sprintf("%s%s.h", hdr_modules[i].include_dir, hdr_modules[i].name);
+        const char *obj = temp_sprintf("%s%s.o", (target == "linux") ? LINUX : WINDOWS, hdr_modules[i].name);
+        int res = needs_rebuild1(obj, hdr);
+        if (res < 0) {
+            nob_log(ERROR, "needs rebuild failed: header %s, obj %s\n", hdr, obj);
+            return false;
+        } else if (!res) {
+            continue; // no rebuild necessary
+        } else {
+            /* build compiler command */
+            cmd_append(cmd, (target == "linux") ? "gcc" : "x86_64-w64-mingw32-gcc");
+            cmd_append(cmd, hdr_modules[i].impl_define);
+            if (hdr_modules[i].api_define) cmd_append(cmd, hdr_modules[i].api_define);
+            cmd_append(cmd, "-x", "c", hdr);
+            cmd_append(cmd, "-c", "-o", obj);
+            if (!cmd_run(cmd)) return false;
+        }
+    }
     return true;
 }
 
-bool build_header_only_libraries_windows(Cmd *cmd, bool force)
+bool build_creese_2D(Cmd *cmd, bool force, const char *target)
 {
-    int res = 0;
-    res = needs_rebuild1(WINDOWS"la.o", EXTERNAL"la.h");
-    if (res < 0) return false;
-    res = needs_rebuild1(WINDOWS"RGFW.o", EXTERNAL"RGFW.h");
-    if (res < 0) return false;
-    res = needs_rebuild1(WINDOWS"stb_image.o", EXTERNAL"stb_image.h");
-    if (res < 0) return false;
-    res = needs_rebuild1(WINDOWS"stb_truetype.o", EXTERNAL"stb_truetype.h");
-    if (res < 0) return false;
-    if (!res &&!force) return true;
-
-    cmd_append(cmd, "x86_64-w64-mingw32-gcc", "-g");
-    cmd_append(cmd, "-DLA_IMPLEMENTATION", "-DLADEF=static");
-    cmd_append(cmd, "-x", "c", EXTERNAL"la.h");
-    cmd_append(cmd, "-c", "-o", WINDOWS"la.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "x86_64-w64-mingw32-gcc", "-g");
-    cmd_append(cmd, "-DRGFW_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", EXTERNAL"RGFW.h");
-    cmd_append(cmd, "-c", "-o", WINDOWS"RGFW.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "x86_64-w64-mingw32-gcc", "-g");
-    cmd_append(cmd, "-DSTB_IMAGE_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", EXTERNAL"stb_image.h");
-    cmd_append(cmd, "-c", "-o", WINDOWS"stb_image.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "x86_64-w64-mingw32-gcc", "-g");
-    cmd_append(cmd, "-DSTB_TRUETYPE_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", EXTERNAL"stb_truetype.h");
-    cmd_append(cmd, "-c", "-o", WINDOWS"stb_truetype.o");
-    if (!cmd_run(cmd)) return false;
-
-    cmd_append(cmd, "x86_64-w64-mingw32-gcc", "-g");
-    cmd_append(cmd, "-DNOB_IMPLEMENTATION");
-    cmd_append(cmd, "-x", "c", "nob.h");
-    cmd_append(cmd, "-c", "-o", WINDOWS"nob.o");
-    if (!cmd_run(cmd)) return false;
-
-    return true;
-}
-
-bool build_creese_2D_linux(Cmd *cmd, bool force)
-{
-    int creese_touched = needs_rebuild(LINUX"creese_2D.o", creese_2D_srcs, ARRAY_LEN(creese_2D_srcs));
+    /* build director strings and return early if no rebuild is necessary */
+    const char *build_dir = (target == "linux") ? LINUX : WINDOWS;
+    const char *obj = temp_sprintf("%screese_2D.o", build_dir);
+    int creese_touched = needs_rebuild(obj, creese_2D_srcs, ARRAY_LEN(creese_2D_srcs));
     if (creese_touched < 0) return false;
     if (!creese_touched && !force) return true;
 
-    cmd_append(cmd, "gcc", "-Wall", "-Wextra", "-Werror", "-g");
+    /* build compiler command */
+    cmd_append(cmd, (target == "linux") ? "gcc" : "x86_64-w64-mingw32-gcc");
+    if (target == "linux") cmd_append(cmd, "-Wall", "-Wextra", "-Werror", "-g");
     cmd_append(cmd, "-c", ENGINE"creese_2D.c");
-    cmd_append(cmd, "-o", LINUX"creese_2D.o");
+    cmd_append(cmd, "-o", obj);
     if (!cmd_run(cmd)) return false;
 
     return true;
 }
 
-bool build_creese_2D_windows(Cmd *cmd, bool force)
+bool build_example(Cmd *cmd, const char *example_name, const char *target)
 {
-    int creese_touched = needs_rebuild(WINDOWS"creese_2D.o", creese_2D_srcs, ARRAY_LEN(creese_2D_srcs));
-    if (creese_touched < 0) return false;
-    if (!creese_touched && !force) return true;
-
-    cmd_append(cmd, "x86_64-w64-mingw32-gcc", "-Wall", "-Wextra", "-Werror", "-g");
-    cmd_append(cmd, "-c", ENGINE"creese_2D.c");
-    cmd_append(cmd, "-o", WINDOWS"creese_2D.o");
-    if (!cmd_run(cmd)) return false;
-
-    return true;
-}
-
-bool build_example_linux(Cmd *cmd, const char *example_name)
-{
+    /* build director strings and return early if no rebuild is necessary */
+    const char *build_dir = (target == "linux") ? LINUX : WINDOWS;
     const char *src  = temp_sprintf(SRC"%s.c", example_name);
-    const char *exec = temp_sprintf(LINUX"%s", example_name);
+    const char *exec = temp_sprintf("%s%s", build_dir, example_name);
+    const char *creese_obj = temp_sprintf("%screese_2D.o", build_dir);
     int src_touched = needs_rebuild1(exec, src);
-    int creese_touched = needs_rebuild1(exec, LINUX"creese_2D.o");
-    if (src_touched < 0 || creese_touched < 0) return false;
+    int creese_touched = needs_rebuild1(exec, creese_obj);
+    if (src_touched < 0 || creese_touched < 0) {
+        nob_log(ERROR, "failed to rebuild for creese or example %s", example_name);
+        return false;
+    }
     if (!src_touched && !creese_touched) return true;
 
-
-    cmd_append(cmd, "gcc");
-    cmd_append(cmd, "-Wall", "-Wextra", "-Werror", "-g");
-    cmd_append(cmd, LINUX"nob.o");
-    cmd_append(cmd, LINUX"la.o");
-    cmd_append(cmd, LINUX"RGFW.o");
-    cmd_append(cmd, LINUX"stb_image.o");
-    cmd_append(cmd, LINUX"stb_truetype.o");
-    cmd_append(cmd, LINUX"creese_2D.o");
+    /* build compiler command */
+    cmd_append(cmd, (target == "linux") ? "gcc" : "x86_64-w64-mingw32-gcc");
+    if (target == "linux") cmd_append(cmd, "-Wall", "-Wextra", "-Werror", "-g");
+    for (size_t i = 0; i < ARRAY_LEN(hdr_modules); i++)
+        cmd_append(cmd, temp_sprintf("%s%s.o", (target == "linux") ? LINUX : WINDOWS, hdr_modules[i].name));
+    cmd_append(cmd, creese_obj);
     cmd_append(cmd, src);
     cmd_append(cmd, "-o", exec);
-    cmd_append(cmd, "-lm", "-lXrandr", "-lX11");
-    return cmd_run(cmd);
-}
-
-bool build_example_windows(Cmd *cmd, const char *example_name)
-{
-    const char *src  = temp_sprintf(SRC"%s.c", example_name);
-    const char *exec = temp_sprintf(WINDOWS"%s", example_name);
-    int src_touched = needs_rebuild1(exec, src);
-    int creese_touched = needs_rebuild1(exec, WINDOWS"creese_2D.o");
-    if (src_touched < 0 || creese_touched < 0) return false;
-    if (!src_touched && !creese_touched) return true;
-
-
-    cmd_append(cmd, "x86_64-w64-mingw32-gcc");
-    cmd_append(cmd, "-Wall", "-Wextra", "-Werror", "-g");
-    cmd_append(cmd, WINDOWS"nob.o");
-    cmd_append(cmd, WINDOWS"la.o");
-    cmd_append(cmd, WINDOWS"RGFW.o");
-    cmd_append(cmd, WINDOWS"stb_image.o");
-    cmd_append(cmd, WINDOWS"stb_truetype.o");
-    cmd_append(cmd, WINDOWS"creese_2D.o");
-    cmd_append(cmd, src);
-    cmd_append(cmd, "-o", exec);
-    cmd_append(cmd, "-lm", "-lgdi32");
+    cmd_append(cmd, "-lm");
+    if (target == "linux") cmd_append(cmd, "-lXrandr", "-lX11");
+    else                   cmd_append(cmd, "-lgdi32");
     return cmd_run(cmd);
 }
 
@@ -214,8 +172,8 @@ bool parse_cmd_args(int argc, char **argv)
             nob_log(INFO, "executing clean build");
         } else if (!strcmp("--target", flag)) {
             const char *target = shift(argv, argc);
-            if (strcmp(target, "windows") == 0) config.target = "windows";
-            if (strcmp(target, "linux") == 0)   config.target = "linux";
+            if (!strcmp(target, "windows")) config.target = "windows";
+            if (!strcmp(target, "linux"))   config.target = "linux";
         } else {
             nob_log(ERROR, "unrecognized flag %s", flag);
             log_usage(config.program);
@@ -240,22 +198,10 @@ int main(int argc, char **argv)
 
     Cmd cmd = {0};
 
-    if (config.target == "linux") {
-        if (!build_header_only_libraries_linux(&cmd, config.clean)) return 1;
-        if (!build_creese_2D_linux(&cmd, config.clean))             return 1;
-        if (!build_example_linux(&cmd, "example_circle"))           return 1;
-        if (!build_example_linux(&cmd, "example_image"))            return 1;
-        if (!build_example_linux(&cmd, "example_animation"))        return 1;
-        if (!build_example_linux(&cmd, "example_text"))             return 1;
-    } else {
-        if (!build_header_only_libraries_windows(&cmd, config.clean)) return 1;
-        if (!build_creese_2D_windows(&cmd, config.clean))             return 1;
-        if (!build_example_windows(&cmd, "example_circle"))           return 1;
-        if (!build_example_windows(&cmd, "example_image"))            return 1;
-        if (!build_example_windows(&cmd, "example_animation"))        return 1;
-        if (!build_example_windows(&cmd, "example_text"))             return 1;
-    }
-
+    if (!build_header_only_libraries(&cmd, config.target))   return 1;
+    if (!build_creese_2D(&cmd, config.clean, config.target)) return 1;
+    for (size_t i = 0; i < ARRAY_LEN(examples); i++)
+        if (!build_example(&cmd, examples[i], config.target)) return 1;
 
     return 0;
 }
