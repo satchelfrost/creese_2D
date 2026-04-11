@@ -81,6 +81,10 @@ typedef struct {
     Glyph glyphs[CHAR_COUNT]; // ASCII 32..126 is 95 glyphs
 } Font;
 
+typedef struct {
+    int x, y;
+} Mouse;
+
 /* general */
 uint8_t *get_frame_buffer();
 void init_window(int width, int height, char *title);
@@ -116,6 +120,8 @@ void draw_text_at_base_scaled(Font font, const char *text, size_t text_len, int 
 /* misc */
 Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
 uint32_t color_to_uint32_t(Color color);
+
+Mouse get_mouse_position();
 
 /* time_keep.c */
 void begin_timer();

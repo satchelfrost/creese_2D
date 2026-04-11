@@ -22,6 +22,7 @@ static struct {
 void begin_timer()
 {
     time_keep.curr   = get_time();
+    time_keep.prev   = (time_keep.prev == 0) ? time_keep.curr : time_keep.prev;
     time_keep.update = time_keep.curr - time_keep.prev;
     time_keep.prev   = time_keep.curr;
 }

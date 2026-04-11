@@ -22,6 +22,7 @@ static RGFW_window *window = NULL;
 static RGFW_event event = {0};
 static RGFW_surface *surface = NULL;
 static uint8_t *frame_buff = NULL;
+static Mouse mouse = {0};
 
 #define DEFAULT_BITMAP_WIDTH 400
 #define DEFAULT_BITMAP_HEIGHT 400
@@ -54,6 +55,11 @@ bool window_should_close()
     while (RGFW_window_checkEvent(window, &event)) {
         if (event.type == RGFW_quit) result = true;
     }
+
+    if (RGFW_window_isMouseInside(window)) {
+        RGFW_window_getMouse(window, &mouse.x, &mouse.y);
+    }
+
     return result;
 }
 
@@ -101,7 +107,9 @@ void draw_rectangle(Rectangle r, Color color)
 
 void draw_rectangle_lines(Rectangle rectangle, Color color)
 {
-    swr_draw_aabb_2D(frame_buff, rectangle.x, rectangle.y, rectangle.width, rectangle.height, color_to_uint32_t(color));
+    swr_draw_aabb_2D(frame_buff, rectangle.x, rectangle.y,
+                     rectangle.x + rectangle.width, rectangle.y + rectangle.height,
+                     color_to_uint32_t(color));
 }
 
 void draw_line(int x0, int y0, int x1, int y1, Color color)
@@ -252,4 +260,9 @@ uint32_t color_to_uint32_t(Color color)
     uint32_t b = color.b;
     uint32_t a = color.a;
     return a << 24 | b << 16 | g << 8 | r;
+}
+
+Mouse get_mouse_position()
+{
+    return mouse;
 }

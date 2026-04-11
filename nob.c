@@ -23,7 +23,8 @@ const char *examples[] = {
     "example_image",
     "example_animation",
     "example_text",
-    "example_audio",
+    "example_tuxedo_man",
+    // "example_audio",
 };
 
 /* header only modules are precompiled */
@@ -36,7 +37,7 @@ struct {
     {
         .name = "la",
         .impl_define = "-DLA_IMPLEMENTATION",
-        .api_define = "-DLADEF=static",
+        .api_define = "-DLADEF=extern",
         .include_dir = EXTERNAL,
     },
     {
@@ -72,7 +73,7 @@ struct {
 };
 
 
-bool build_header_only_libraries(Cmd *cmd, const char *target)
+bool build_header_only_libraries(Cmd *cmd, const char *target, bool force)
 {
     for (size_t i = 0; i < ARRAY_LEN(hdr_modules); i++) {
         const char *hdr = temp_sprintf("%s%s.h", hdr_modules[i].include_dir, hdr_modules[i].name);
@@ -81,7 +82,7 @@ bool build_header_only_libraries(Cmd *cmd, const char *target)
         if (res < 0) {
             nob_log(ERROR, "needs rebuild failed: header %s, obj %s\n", hdr, obj);
             return false;
-        } else if (!res) {
+        } else if (!res && !force) {
             continue; // no rebuild necessary
         } else {
             /* build compiler command */
@@ -132,7 +133,8 @@ bool build_example(Cmd *cmd, const char *example_name, const char *target)
 
     /* build compiler command */
     cmd_append(cmd, (target == "linux") ? "gcc" : "x86_64-w64-mingw32-gcc");
-    if (target == "linux") cmd_append(cmd, "-Wall", "-Wextra", "-Werror", "-g");
+    if (target == "linux") cmd_append(cmd, "-Wall", "-Wextra", "-g");
+    // cmd_append(cmd, "-Wno-missing-braces");
     for (size_t i = 0; i < ARRAY_LEN(hdr_modules); i++)
         cmd_append(cmd, temp_sprintf("%s%s.o", (target == "linux") ? LINUX : WINDOWS, hdr_modules[i].name));
     cmd_append(cmd, creese_obj);
@@ -198,8 +200,8 @@ int main(int argc, char **argv)
 
     Cmd cmd = {0};
 
-    if (!build_header_only_libraries(&cmd, config.target))   return 1;
-    if (!build_creese_2D(&cmd, config.clean, config.target)) return 1;
+    if (!build_header_only_libraries(&cmd, config.target, config.clean)) return 1;
+    if (!build_creese_2D(&cmd, config.clean, config.target))             return 1;
     for (size_t i = 0; i < ARRAY_LEN(examples); i++)
         if (!build_example(&cmd, examples[i], config.target)) return 1;
 
