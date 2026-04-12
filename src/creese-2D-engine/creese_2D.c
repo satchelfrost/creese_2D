@@ -14,6 +14,7 @@ static int win_height = 0;
 
 /* modules */
 #include "time_keep.c"
+#include "sprite.c"
 
 /* global variables local to this file */
 static int win_x = 0;
@@ -22,6 +23,7 @@ static RGFW_window *window = NULL;
 static RGFW_event event = {0};
 static RGFW_surface *surface = NULL;
 static uint8_t *frame_buff = NULL;
+static Mouse mouse = {0};
 
 #define DEFAULT_BITMAP_WIDTH 400
 #define DEFAULT_BITMAP_HEIGHT 400
@@ -35,7 +37,7 @@ void init_window(int width, int height, char *title)
 {
     win_width = width;
     win_height = height;
-    window = RGFW_createWindow(title, win_x, win_y, width, height, (u64)0);
+    window = RGFW_createWindow(title, win_x, win_y, width, height, RGFW_windowCenter);
     frame_buff = malloc(SWR_FRAME_WIDTH*SWR_FRAME_HEIGHT*4);
     surface = RGFW_createSurface(frame_buff, SWR_FRAME_WIDTH, SWR_FRAME_HEIGHT, RGFW_formatRGBA8);
 	RGFW_window_setExitKey(window, RGFW_escape);
@@ -54,6 +56,11 @@ bool window_should_close()
     while (RGFW_window_checkEvent(window, &event)) {
         if (event.type == RGFW_quit) result = true;
     }
+
+    if (RGFW_window_isMouseInside(window)) {
+        RGFW_window_getMouse(window, &mouse.x, &mouse.y);
+    }
+
     return result;
 }
 
@@ -101,7 +108,9 @@ void draw_rectangle(Rectangle r, Color color)
 
 void draw_rectangle_lines(Rectangle rectangle, Color color)
 {
-    swr_draw_aabb_2D(frame_buff, rectangle.x, rectangle.y, rectangle.width, rectangle.height, color_to_uint32_t(color));
+    swr_draw_aabb_2D(frame_buff, rectangle.x, rectangle.y,
+                     rectangle.x + rectangle.width, rectangle.y + rectangle.height,
+                     color_to_uint32_t(color));
 }
 
 void draw_line(int x0, int y0, int x1, int y1, Color color)
@@ -252,4 +261,9 @@ uint32_t color_to_uint32_t(Color color)
     uint32_t b = color.b;
     uint32_t a = color.a;
     return a << 24 | b << 16 | g << 8 | r;
+}
+
+Mouse get_mouse_position()
+{
+    return mouse;
 }
