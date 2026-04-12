@@ -128,9 +128,12 @@ void draw_line(int x0, int y0, int x1, int y1, Color color);
 Image load_image(const char *image_path);
 void unload_image(Image image);
 void draw_image(Image image, int x, int y);
+void draw_image_flip_x(Image image, int x, int y);
+void draw_image_flip_y(Image image, int x, int y);
 void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y);
 void draw_image_rect(Image image, Rectangle r, int x, int y);
 void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
+void draw_image_rect_scaled_flip_x(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
 
 /* Text */
 Font load_font(const char *file_path, int font_height);

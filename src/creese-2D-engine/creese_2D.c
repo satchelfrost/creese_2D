@@ -140,6 +140,16 @@ void draw_image(Image image, int x, int y)
     swr_draw_image(frame_buff, image.data, x, y, image.width, image.height);
 }
 
+void draw_image_flip_x(Image image, int x, int y)
+{
+    swr_draw_image_flip_x(frame_buff, image.data, x, y, image.width, image.height);
+}
+
+void draw_image_flip_y(Image image, int x, int y)
+{
+    swr_draw_image_flip_y(frame_buff, image.data, x, y, image.width, image.height);
+}
+
 void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y)
 {
     swr_draw_image_scaled(frame_buff, image.data, x, y, image.width, image.height, scale_x, scale_y);
@@ -155,6 +165,12 @@ void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x,
 {
     swr_draw_image_rect_scaled(frame_buff, image.data, x, y, image.width, image.height,
                                r.x, r.y, r.width, r.height, scale_x, scale_y);
+}
+
+void draw_image_rect_scaled_flip_x(Image image, Rectangle r, int x, int y, int scale_x, int scale_y)
+{
+    swr_draw_image_rect_scaled_flip_x(frame_buff, image.data, x, y, image.width, image.height,
+                                      r.x, r.y, r.width, r.height, scale_x, scale_y);
 }
 
 Font load_font(const char *file_path, int font_height)

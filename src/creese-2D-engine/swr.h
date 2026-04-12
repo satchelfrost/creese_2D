@@ -27,8 +27,12 @@ void swr_put_pixel(uint8_t *buff, int x, int y, uint32_t color);
 void swr_draw_circle(uint8_t *buff, int x0, int y0, int radius, uint32_t color);
 void swr_draw_rectangle(uint8_t *buff, int x0, int y0, int w, int h, uint32_t color);
 void swr_draw_image(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h);
+void swr_draw_image_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h);
+void swr_draw_image_flip_y(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h);
 void swr_draw_image_rect(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h);
+void swr_draw_image_rect_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h);
 void swr_draw_image_rect_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y);
+void swr_draw_image_rect_scaled_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y);
 void swr_draw_image_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y);
 void swr_draw_line(uint8_t *buff, int x0, int y0, int x1, int y1, uint32_t color);
 void swr_draw_triangle_wireframe(uint8_t *buff, int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
@@ -72,17 +76,17 @@ uint32_t swr_alpha_blend(uint32_t top, uint32_t bottom)
 
 void swr_draw_circle(uint8_t *buff, int x, int y, int radius, uint32_t color)
 {
-    int x0 = x - radius;
+    /* make the start position the top left of a square around the circle */
     int y0 = y - radius;
-    int width = 2*radius;
-    int height = 2*radius;
-    for (int i = 0; i < height; i++) {
+    int x0 = x - radius;
+
+    for (int i = 0; i < radius*2; i++) {
         int yp = y0 + i;
-        int dy = y-yp;
+        int dy = y - yp;
         if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
-        for (int j = 0; j < width; j++) {
+        for (int j = 0; j < radius*2; j++) {
             int xp = x0 + j;
-            int dx = x-xp;
+            int dx = x - xp;
             if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
             if ((dx*dx + dy*dy) < radius*radius) {
                 swr_put_pixel(buff, xp, yp, color);
@@ -93,14 +97,13 @@ void swr_draw_circle(uint8_t *buff, int x, int y, int radius, uint32_t color)
 
 void swr_draw_rectangle(uint8_t *buff, int x0, int y0, int w, int h, uint32_t color)
 {
-    for (int y = 0; y <= h; y++) {
-        int yp = y + y0;
+    for (int y = 0; y < h; y++) {
+        int yp = y0 + y;
         if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
-        for (int x = 0; x <= w; x++) {
-            int xp = x + x0;
+        for (int x = 0; x < w; x++) {
+            int xp = x0 + x;
             if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
-            uint32_t src       = ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH + xp];
-            ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH+ xp] = swr_alpha_blend(color, src);
+            swr_put_pixel(buff, xp, yp, color);
         }
     }
 }
@@ -108,52 +111,117 @@ void swr_draw_rectangle(uint8_t *buff, int x0, int y0, int w, int h, uint32_t co
 void swr_draw_image(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h)
 {
     for (int y = 0; y < h; y++) {
-        int yp = y + y0;
+        int yp = y0 + y;
         if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
         for (int x = 0; x < w; x++) {
-            int xp = x + x0;
+            int xp = x0 + x;
             if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
-            uint32_t img_color = ((uint32_t *)image)[y*w + x];
-            uint32_t src       = ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH + xp];
-            ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH+ xp] = swr_alpha_blend(img_color, src);
+            uint32_t color = ((uint32_t *)image)[y*w + x];
+            swr_put_pixel(buff, xp, yp, color);
+        }
+    }
+}
+
+void swr_draw_image_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h)
+{
+    for (int y = 0; y < h; y++) {
+        int yp = y0 + y;
+        int yi = y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
+        for (int x = 0; x < w; x++) {
+            int xp = x0 + x;
+            int xi = w - 1 - x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
+        }
+    }
+}
+
+void swr_draw_image_flip_y(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h)
+{
+    for (int y = 0; y < h; y++) {
+        int yp = y0 + y;
+        int yi = h - 1 - y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
+        for (int x = 0; x < w; x++) {
+            int xp = x0 + x;
+            int xi = x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
         }
     }
 }
 
 void swr_draw_image_rect(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h)
 {
-    for (int i = 0; i < rect_h; i++) {
-        int yi = i + rect_y;
-        int yp = i + y0;
+    for (int y = 0; y < rect_h; y++) {
+        int yi = rect_y + y;
+        int yp = y0 + y;
         if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
         if (!(0 <= yi && yi < h))                continue; // image bounds check
-        for (int j = 0; j < rect_w; j++) {
-            int xi = j + rect_x;
-            int xp = j + x0;
+        for (int x = 0; x < rect_w; x++) {
+            int xi = rect_x + x;
+            int xp = x0 + x;
             if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
             if (!(0 <= xi && xi < w))               continue; // image bounds check
-            uint32_t img_color = ((uint32_t *)image)[yi*w + xi];
-            uint32_t src       = ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH + xp];
-            ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH+ xp] = swr_alpha_blend(img_color, src);
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
+        }
+    }
+}
+
+void swr_draw_image_rect_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h)
+{
+    for (int y = 0; y < rect_h; y++) {
+        int yi = rect_y + y;
+        int yp = y0 + y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
+        if (!(0 <= yi && yi < h))                continue; // image bounds check
+        for (int x = 0; x < rect_w; x++) {
+            int xi = rect_x + rect_w - 1 - x;
+            int xp = x0 + x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
+            if (!(0 <= xi && xi < w))               continue; // image bounds check
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
         }
     }
 }
 
 void swr_draw_image_rect_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y)
 {
-    for (int i = 0; i < rect_h*scale_y; i++) {
-        int yi = i/scale_y + rect_y;
-        int yp = i + y0;
+    for (int y = 0; y < rect_h*scale_y; y++) {
+        int yi = rect_y + y/scale_y;
+        int yp = y0 + y;
         if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
         if (!(0 <= yi && yi < h))                continue; // image bounds check
-        for (int j = 0; j < rect_w*scale_x; j++) {
-            int xi = j/scale_x + rect_x;
-            int xp = j + x0;
+        for (int x = 0; x < rect_w*scale_x; x++) {
+            int xi = rect_x + x/scale_x;
+            int xp = x0 + x;
             if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
             if (!(0 <= xi && xi < w))               continue; // image bounds check
-            uint32_t img_color = ((uint32_t *)image)[yi*w + xi];
-            uint32_t src       = ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH + xp];
-            ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH+ xp] = swr_alpha_blend(img_color, src);
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
+        }
+    }
+}
+
+void swr_draw_image_rect_scaled_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y)
+{
+    for (int y = 0; y < rect_h*scale_y; y++) {
+        int yi = rect_y + y/scale_y;
+        int yp = y0 + y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
+        if (!(0 <= yi && yi < h))                continue; // image bounds check
+        for (int x = 0; x < rect_w*scale_x; x++) {
+            int xi = rect_x + rect_w - 1 - x/scale_x;
+            int xp = x0 + x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
+            if (!(0 <= xi && xi < w))               continue; // image bounds check
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
         }
     }
 }
@@ -161,16 +229,17 @@ void swr_draw_image_rect_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, i
 void swr_draw_image_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y)
 {
     for (int y = 0; y < h*scale_y; y++) {
-        int yp = y + y0;
-        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
+        int yi = y/scale_y;
+        int yp = y0 + y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
+        if (!(0 <= yi && yi < h))                continue; // image bounds check
         for (int x = 0; x < w*scale_x; x++) {
-            int xp = x + x0;
-            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
-            int sample_x = x/scale_x;
-            int sample_y = y/scale_y;
-            uint32_t img_color = ((uint32_t *)image)[sample_y*w + sample_x];
-            uint32_t src       = ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH + xp];
-            ((uint32_t *)buff)[yp*SWR_FRAME_WIDTH+ xp] = swr_alpha_blend(img_color, src);
+            int xi = x/scale_x;
+            int xp = x0 + x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
+            if (!(0 <= xi && xi < w))               continue; // image bounds check
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
         }
     }
 }
