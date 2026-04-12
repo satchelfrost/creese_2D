@@ -15,6 +15,7 @@ const char *creese_2D_srcs[] = {
     SRC"creese_2D.h",
     ENGINE"creese_2D.c",
     ENGINE"time_keep.c",
+    ENGINE"sprite.c",
     ENGINE"swr.h",
 };
 
