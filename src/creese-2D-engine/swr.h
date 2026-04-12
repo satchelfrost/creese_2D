@@ -68,17 +68,22 @@ uint32_t swr_alpha_blend(uint32_t top, uint32_t bottom)
     return top_a<<24 | res_b<<16 | res_g<<8 | res_r;
 }
 
-void swr_draw_circle(uint8_t *buff, int x0, int y0, int radius, uint32_t color)
+void swr_draw_circle(uint8_t *buff, int x, int y, int radius, uint32_t color)
 {
-    for (int y = 0; y < SWR_FRAME_HEIGHT; y++) {
-        if (!(0 <= y && y < SWR_FRAME_HEIGHT)) continue;
-        int ys = (y-y0)*(y-y0);
-        for (int x = 0; x < SWR_FRAME_WIDTH; x++) {
-            if (!(0 <= x && x < SWR_FRAME_WIDTH)) continue;
-            int xs = (x-x0)*(x-x0);
-            if ((xs + ys) < radius*radius) {
-                uint32_t src = ((uint32_t *)buff)[y*SWR_FRAME_WIDTH + x];
-                ((uint32_t *)buff)[y*SWR_FRAME_WIDTH + x] = swr_alpha_blend(color, src);
+    int x0 = x - radius;
+    int y0 = y - radius;
+    int width = 2*radius;
+    int height = 2*radius;
+    for (int i = 0; i < height; i++) {
+        int yp = y0 + i;
+        int dy = y-yp;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue;
+        for (int j = 0; j < width; j++) {
+            int xp = x0 + j;
+            int dx = x-xp;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue;
+            if ((dx*dx + dy*dy) < radius*radius) {
+                swr_put_pixel(buff, xp, yp, color);
             }
         }
     }
