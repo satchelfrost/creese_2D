@@ -1,4 +1,5 @@
 #include "creese_2D.h"
+#include <stdio.h>
 
 enum {
     TUXEDO_ANIM_IDLE,

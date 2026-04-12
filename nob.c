@@ -24,7 +24,6 @@ const char *examples[] = {
     "example_animation",
     "example_text",
     "example_tuxedo_man",
-    // "example_audio",
 };
 
 /* header only modules are precompiled */
@@ -134,7 +133,7 @@ bool build_example(Cmd *cmd, const char *example_name, const char *target)
     /* build compiler command */
     cmd_append(cmd, (target == "linux") ? "gcc" : "x86_64-w64-mingw32-gcc");
     if (target == "linux") cmd_append(cmd, "-Wall", "-Wextra", "-g");
-    // cmd_append(cmd, "-Wno-missing-braces");
+    cmd_append(cmd, "-Wno-missing-braces");
     for (size_t i = 0; i < ARRAY_LEN(hdr_modules); i++)
         cmd_append(cmd, temp_sprintf("%s%s.o", (target == "linux") ? LINUX : WINDOWS, hdr_modules[i].name));
     cmd_append(cmd, creese_obj);

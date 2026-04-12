@@ -61,11 +61,13 @@ uint32_t swr_alpha_blend(uint32_t top, uint32_t bottom)
     uint32_t bottom_r = (bottom>> 0 & 0xff) * (255 - top_a);
     uint32_t bottom_g = (bottom>> 8 & 0xff) * (255 - top_a);
     uint32_t bottom_b = (bottom>>16 & 0xff) * (255 - top_a);
+    uint32_t bottom_a = (bottom>>24 & 0xff) * (255 - top_a);
     uint32_t res_r = (top_r + bottom_r)/255;
     uint32_t res_g = (top_g + bottom_g)/255;
     uint32_t res_b = (top_b + bottom_b)/255;
+    uint32_t res_a = (top_a + bottom_a)/255;
 
-    return top_a<<24 | res_b<<16 | res_g<<8 | res_r;
+    return res_a<<24 | res_b<<16 | res_g<<8 | res_r;
 }
 
 void swr_draw_circle(uint8_t *buff, int x, int y, int radius, uint32_t color)

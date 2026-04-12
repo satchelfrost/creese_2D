@@ -36,7 +36,7 @@ void init_window(int width, int height, char *title)
 {
     win_width = width;
     win_height = height;
-    window = RGFW_createWindow(title, win_x, win_y, width, height, (u64)0);
+    window = RGFW_createWindow(title, win_x, win_y, width, height, RGFW_windowCenter);
     frame_buff = malloc(SWR_FRAME_WIDTH*SWR_FRAME_HEIGHT*4);
     surface = RGFW_createSurface(frame_buff, SWR_FRAME_WIDTH, SWR_FRAME_HEIGHT, RGFW_formatRGBA8);
 	RGFW_window_setExitKey(window, RGFW_escape);
