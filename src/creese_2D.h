@@ -81,6 +81,31 @@ typedef struct {
     Glyph glyphs[CHAR_COUNT]; // ASCII 32..126 is 95 glyphs
 } Font;
 
+typedef struct {
+    int x, y;
+} Mouse;
+
+typedef struct {
+    float scale;
+
+    struct {
+        bool playing;
+        float time;
+        float timeout;
+        uint32_t frame;
+        uint32_t type;
+        bool horizontal; // if true animation frames are left/right, as opposed to top/bottom
+    } animation;
+
+    Image image;
+    struct {
+        V2f size;
+        V2f shift_amt;
+        V2f offset;
+        Rectangle rect;
+    } sub_image;
+} Sprite;
+
 /* general */
 uint8_t *get_frame_buffer();
 void init_window(int width, int height, char *title);
@@ -103,9 +128,12 @@ void draw_line(int x0, int y0, int x1, int y1, Color color);
 Image load_image(const char *image_path);
 void unload_image(Image image);
 void draw_image(Image image, int x, int y);
+void draw_image_flip_x(Image image, int x, int y);
+void draw_image_flip_y(Image image, int x, int y);
 void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y);
 void draw_image_rect(Image image, Rectangle r, int x, int y);
 void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
+void draw_image_rect_scaled_flip_x(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
 
 /* Text */
 Font load_font(const char *file_path, int font_height);
@@ -113,9 +141,19 @@ void unload_font(Font font);
 void draw_text_at_base(Font font, const char *text, size_t text_len, int x, int y, Color color);
 void draw_text_at_base_scaled(Font font, const char *text, size_t text_len, int x, int y, Color color, int scale_x, int scale_y);
 
+/* Sprite */
+Rectangle get_anim_sub_rect(Sprite sprite);
+void update_animation(Sprite *sprite, uint32_t total_anim_frames);
+Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uint32_t vertical_sprite_count, float scale);
+void draw_sprite(Sprite sprite, int x, int y);
+void draw_sprite_centered(Sprite sprite, int x, int y);
+void draw_sprite_centered_debug(Sprite sprite, int x, int y);
+
 /* misc */
 Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
 uint32_t color_to_uint32_t(Color color);
+
+Mouse get_mouse_position();
 
 /* time_keep.c */
 void begin_timer();
