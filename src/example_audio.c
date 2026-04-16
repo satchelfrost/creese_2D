@@ -75,7 +75,7 @@ static struct {
     struct {
         Audio_Buffer *first;
         Audio_Buffer *last;
-        int defaultsSize;
+        int default_size;
     } buffer;
 } audio_ctx = {0};
 
@@ -107,6 +107,7 @@ void init_audio_device(void)
     result = ma_device_init(&audio_ctx.system.context, &config, &audio_ctx.system.device);
     if (result != MA_SUCCESS) {
         printf("ERROR: failed to initialize playback device\n");
+        ma_context_uninit(&audio_ctx.system.context);
         return;
     }
 
@@ -294,7 +295,7 @@ static void on_send_audio_data_to_device(ma_device *device, void *p_frames_out, 
     UNUSED(p_frames_input);
     memset(p_frames_out, 0, frame_count*device->playback.channels*ma_get_bytes_per_sample(device->playback.format));
 
-    ma_mutex_lock(&audio_ctx.system.lock);
+    ma_mutex_lock(&audio_ctx.system.lock); {
         for (Audio_Buffer *audio_buffer = audio_ctx.buffer.first; audio_buffer; audio_buffer = audio_buffer->next) {
             if (!audio_buffer->playing || audio_buffer->paused) continue;
 
@@ -311,7 +312,6 @@ static void on_send_audio_data_to_device(ma_device *device, void *p_frames_out, 
 
                     ma_uint32 frames_just_read = read_audio_buffer_frames_in_mixing_format(audio_buffer, tmp_buff, frames_to_read_now);
                     if (frames_just_read) {
-                        // printf("frames just read %u\n", frames_just_read);
                         float *frames_out = (float *)p_frames_out + (frames_read*audio_ctx.system.device.playback.channels);
                         float *frames_in = tmp_buff;
                         mix_audio_frames(frames_out, frames_in, frames_just_read, audio_buffer);
@@ -338,7 +338,7 @@ static void on_send_audio_data_to_device(ma_device *device, void *p_frames_out, 
                 }
             }
         }
-    ma_mutex_unlock(&audio_ctx.system.lock);
+    } ma_mutex_unlock(&audio_ctx.system.lock);
 }
 
 Wave load_wave(const char *file_path)
@@ -462,7 +462,7 @@ Sound load_sound_from_wave(Wave wave)
         }
 
         frame_count = ma_convert_frames(audio_buffer->data, frame_count, AUDIO_DEVICE_FORMAT, AUDIO_DEVICE_CHANNELS,
-                                        audio_ctx.system.device.sampleRate, NULL, wave.frame_count,
+                                        audio_ctx.system.device.sampleRate, wave.data, wave.frame_count,
                                         ma_format_s16, // since we are forcing this is fine
                                         wave.channels, wave.sample_rate);
         if (!frame_count) printf("ERROR: failed format conversion\n");
@@ -479,10 +479,16 @@ Sound load_sound_from_wave(Wave wave)
 
 void play_audio_buffer(Audio_Buffer *buffer)
 {
+
     if (buffer) {
-        buffer->playing = true;
-        buffer->paused = false;
-        buffer->frame_cursor_pos = 0;
+        ma_mutex_lock(&audio_ctx.system.lock);
+            buffer->playing = true;
+            buffer->paused = false;
+            buffer->frame_cursor_pos = 0;
+            buffer->frames_processed = 0;
+            buffer->is_sub_buffer_processed[0] = true;
+            buffer->is_sub_buffer_processed[1] = true;
+        ma_mutex_unlock(&audio_ctx.system.lock);
     }
 }
 
@@ -491,7 +497,7 @@ void play_sound(Sound sound)
     play_audio_buffer(sound.stream.buffer);
 }
 
-Sound load_wave_sound(const char *file_path)
+Sound load_sound(const char *file_path)
 {
     Wave wave = load_wave(file_path);
     Sound sound = load_sound_from_wave(wave);
@@ -499,22 +505,27 @@ Sound load_wave_sound(const char *file_path)
     return sound;
 }
 
+void unload_sound(Sound sound)
+{
+    unload_audio_buffer(sound.stream.buffer);
+}
+
 int main()
 {
     init_window(500, 500, "audio test");
     init_audio_device();
 
-    Sound sound = load_wave_sound("assets/weird.wav");
+    Sound sound = load_sound("assets/weird.wav");
 
     while (!window_should_close()) {
         if (RGFW_isKeyPressed(RGFW_space)) {
             play_sound(sound);
-            printf("trying to play sound\n");
         }
         begin_drawing(BLUE);
         end_drawing();
     }
 
+    unload_sound(sound);
     close_audio_device();
     close_window();
     return 0;
