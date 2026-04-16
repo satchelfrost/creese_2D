@@ -45,6 +45,16 @@ typedef struct Color {
     unsigned char a;
 } Color;
 
+/* general */
+uint8_t *get_frame_buffer();
+void init_window(int width, int height, char *title);
+void close_window(void);
+bool window_should_close(void);
+void begin_drawing(Color bg_color);
+void end_drawing(void);
+void clear_background(Color bg_color); // also called by begin_drawing
+
+/* simple shapes */
 typedef struct {
     int x;
     int y;
@@ -52,26 +62,39 @@ typedef struct {
     int height;
 } Rectangle;
 
+void draw_pixel(int x, int y, Color color);
+void draw_circle(int x, int y, int radius, Color color);
+void draw_triangle(V2i v0, V2i v1, V2i v2, Color color);
+void draw_triangle_wireframe(V2i v0, V2i v1, V2i v2, Color color);
+void draw_rectangle(Rectangle rectangle, Color color);
+void draw_rectangle_lines(Rectangle rectangle, Color color);
+void draw_line(int x0, int y0, int x1, int y1, Color color);
+
+/* Image */
 typedef struct {
     int width;
     int height;
     uint8_t *data;
 } Image;
 
-typedef struct {
-    int x_min;
-    int y_min;
-    int x_max;
-    int y_max;
-} AABB_2D;
+Image load_image(const char *image_path);
+void unload_image(Image image);
+void draw_image(Image image, int x, int y);
+void draw_image_flip_x(Image image, int x, int y);
+void draw_image_flip_y(Image image, int x, int y);
+void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y);
+void draw_image_rect(Image image, Rectangle r, int x, int y);
+void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
+void draw_image_rect_scaled_flip_x(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
+
+/* Text */
+#define CHAR_COUNT 96
+#define FIRST_CHAR 32
 
 typedef struct {
    unsigned short x0, y0, x1, y1;
    float x_offset, y_offset, x_advance;
 } Glyph;
-
-#define CHAR_COUNT 96
-#define FIRST_CHAR 32
 
 typedef struct {
     float height;
@@ -81,10 +104,12 @@ typedef struct {
     Glyph glyphs[CHAR_COUNT]; // ASCII 32..126 is 95 glyphs
 } Font;
 
-typedef struct {
-    int x, y;
-} Mouse;
+Font load_font(const char *file_path, int font_height);
+void unload_font(Font font);
+void draw_text_at_base(Font font, const char *text, size_t text_len, int x, int y, Color color);
+void draw_text_at_base_scaled(Font font, const char *text, size_t text_len, int x, int y, Color color, int scale_x, int scale_y);
 
+/* sprite.c */
 typedef struct {
     float scale;
 
@@ -106,42 +131,6 @@ typedef struct {
     } sub_image;
 } Sprite;
 
-/* general */
-uint8_t *get_frame_buffer();
-void init_window(int width, int height, char *title);
-void close_window(void);
-bool window_should_close(void);
-void begin_drawing(Color bg_color);
-void end_drawing(void);
-void clear_background(Color bg_color); // also called by begin_drawing
-
-/* simple shapes */
-void draw_pixel(int x, int y, Color color);
-void draw_circle(int x, int y, int radius, Color color);
-void draw_triangle(V2i v0, V2i v1, V2i v2, Color color);
-void draw_triangle_wireframe(V2i v0, V2i v1, V2i v2, Color color);
-void draw_rectangle(Rectangle rectangle, Color color);
-void draw_rectangle_lines(Rectangle rectangle, Color color);
-void draw_line(int x0, int y0, int x1, int y1, Color color);
-
-/* Image */
-Image load_image(const char *image_path);
-void unload_image(Image image);
-void draw_image(Image image, int x, int y);
-void draw_image_flip_x(Image image, int x, int y);
-void draw_image_flip_y(Image image, int x, int y);
-void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y);
-void draw_image_rect(Image image, Rectangle r, int x, int y);
-void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
-void draw_image_rect_scaled_flip_x(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
-
-/* Text */
-Font load_font(const char *file_path, int font_height);
-void unload_font(Font font);
-void draw_text_at_base(Font font, const char *text, size_t text_len, int x, int y, Color color);
-void draw_text_at_base_scaled(Font font, const char *text, size_t text_len, int x, int y, Color color, int scale_x, int scale_y);
-
-/* Sprite */
 Rectangle get_anim_sub_rect(Sprite sprite);
 void update_animation(Sprite *sprite, uint32_t total_anim_frames);
 Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uint32_t vertical_sprite_count, float scale);
@@ -149,9 +138,9 @@ void draw_sprite(Sprite sprite, int x, int y);
 void draw_sprite_centered(Sprite sprite, int x, int y);
 void draw_sprite_centered_debug(Sprite sprite, int x, int y);
 
-/* misc */
-Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
-uint32_t color_to_uint32_t(Color color);
+typedef struct {
+    int x, y;
+} Mouse;
 
 Mouse get_mouse_position();
 
@@ -163,5 +152,37 @@ double get_time();
 int get_fps();
 void log_fps();
 void wait_time(double seconds);
+
+/* audio.c */
+typedef struct Audio_Buffer Audio_Buffer;
+
+typedef struct {
+    Audio_Buffer *buffer;
+    uint32_t sample_rate;
+    uint32_t sample_size;
+    uint32_t channels;
+} Audio_Stream;
+
+typedef struct {
+    Audio_Stream stream;
+    unsigned int frame_count;
+} Sound;
+
+void init_audio_device(void);
+void close_audio_device(void);
+Sound load_sound(const char *file_path);
+void unload_sound(Sound sound);
+void play_sound(Sound sound);
+void stop_sound(Sound sound);
+void pause_sound(Sound sound);
+void resume_sound(Sound sound);
+bool is_sound_playing(Sound sound);
+void set_sound_volume(Sound sound, float volume); // range 0 - 1.0
+void set_sound_pitch(Sound sound, float pitch);   // range 0 - 1.0
+void set_sound_pan(Sound sound, float pan);       // -1 = left, 0 = center, +1 = right
+
+/* misc */
+Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
+uint32_t color_to_uint32_t(Color color);
 
 #endif // CREESE_2D_H_

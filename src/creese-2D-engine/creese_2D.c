@@ -15,6 +15,7 @@ static int win_height = 0;
 /* modules */
 #include "time_keep.c"
 #include "sprite.c"
+#include "audio.c"
 
 /* global variables local to this file */
 static int win_x = 0;
