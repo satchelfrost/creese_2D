@@ -165,12 +165,20 @@ typedef struct {
 
 typedef struct {
     Audio_Stream stream;
-    unsigned int frame_count;
+    uint32_t frame_count;
 } Sound;
+
+typedef struct {
+    Audio_Stream stream;
+    uint32_t frame_count;
+    bool looping;
+    void *data;
+} Music;
 
 void init_audio_device(void);
 void close_audio_device(void);
-Sound load_sound(const char *file_path);
+
+Sound load_sound(const char *file_path); // use sound if < 10 seconds
 void unload_sound(Sound sound);
 void play_sound(Sound sound);
 void stop_sound(Sound sound);
@@ -180,6 +188,14 @@ bool is_sound_playing(Sound sound);
 void set_sound_volume(Sound sound, float volume); // range 0 - 1.0
 void set_sound_pitch(Sound sound, float pitch);   // range 0 - 1.0
 void set_sound_pan(Sound sound, float pan);       // -1 = left, 0 = center, +1 = right
+
+Music load_music_stream(const char *file_path); // use music if > 10 seconds
+void unload_music_stream(Music music);
+void play_music_stream(Music music);
+void stop_music_stream(Music music);
+void update_music_stream(Music music);
+void pause_music_stream(Music music);
+void resume_music_stream(Music music);
 
 /* misc */
 Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);

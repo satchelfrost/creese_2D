@@ -57,7 +57,7 @@ static struct {
     struct {
         Audio_Buffer *first;
         Audio_Buffer *last;
-        int default_size;
+        uint32_t default_size;
     } buffer;
 } audio_ctx = {0};
 
@@ -439,7 +439,7 @@ Sound load_sound_from_wave(Wave wave)
     if (wave.data) {
         ma_uint32 frame_count = ma_convert_frames(NULL, 0, AUDIO_DEVICE_FORMAT, AUDIO_DEVICE_CHANNELS,
                                                   audio_ctx.system.device.sampleRate, NULL, wave.frame_count,
-                                                  ma_format_s16, // since we are forcing this is fine
+                                                  ma_format_s16, // force 16 bit
                                                   wave.channels, wave.sample_rate);
         if (!frame_count) printf("ERROR: failed to get frame count for format conversion\n");
         Audio_Buffer *audio_buffer = load_audio_buffer(AUDIO_DEVICE_FORMAT, AUDIO_DEVICE_CHANNELS,
@@ -452,7 +452,7 @@ Sound load_sound_from_wave(Wave wave)
 
         frame_count = ma_convert_frames(audio_buffer->data, frame_count, AUDIO_DEVICE_FORMAT, AUDIO_DEVICE_CHANNELS,
                                         audio_ctx.system.device.sampleRate, wave.data, wave.frame_count,
-                                        ma_format_s16, // since we are forcing this is fine
+                                        ma_format_s16, // force 16 bit
                                         wave.channels, wave.sample_rate);
         if (!frame_count) printf("ERROR: failed format conversion\n");
 
@@ -594,3 +594,181 @@ void unload_sound(Sound sound)
     unload_audio_buffer(sound.stream.buffer);
 }
 
+Audio_Stream load_audio_stream(uint32_t sample_rate, uint32_t sample_size, uint32_t channels)
+{
+    Audio_Stream stream = {
+        .sample_rate = sample_rate,
+        .sample_size = sample_size,
+        .channels = channels,
+    };
+
+    uint32_t period_size = audio_ctx.system.device.playback.internalPeriodSizeInFrames;
+    uint32_t sub_buff_size = audio_ctx.buffer.default_size == 0 ? audio_ctx.system.device.sampleRate/30 : audio_ctx.buffer.default_size;
+    if (sub_buff_size < period_size) sub_buff_size = period_size;
+
+    stream.buffer = load_audio_buffer(ma_format_s16, stream.channels, stream.sample_rate, sub_buff_size*2, AUDIO_BUFFER_USAGE_STREAM);
+
+    if (stream.buffer) stream.buffer->looping = true;
+    else printf("ERROR: failed to initialize stream\n");
+
+    return stream;
+}
+
+void update_audio_stream_in_locked_state(Audio_Stream stream, const void *data, int frame_count)
+{
+    if (stream.buffer) {
+        if (stream.buffer->is_sub_buffer_processed[0] || stream.buffer->is_sub_buffer_processed[1]) {
+            ma_uint32 sub_buff_to_update = 0;
+
+            if (stream.buffer->is_sub_buffer_processed[0] && stream.buffer->is_sub_buffer_processed[1]) {
+                sub_buff_to_update = 0;
+                stream.buffer->frame_cursor_pos = 0;
+            } else {
+                sub_buff_to_update = (stream.buffer->is_sub_buffer_processed[0])? 0 : 1;
+            }
+
+            ma_uint32 sub_buff_size_in_frames = stream.buffer->size_in_frames/2;
+            uint8_t *sub_buff = stream.buffer->data + ((sub_buff_size_in_frames*stream.channels*(stream.sample_size/8))*sub_buff_to_update);
+
+            // Total frames processed in buffer is always the complete size, filled with 0 if required
+            stream.buffer->frames_processed += frame_count;
+
+            if (sub_buff_size_in_frames >= (ma_uint32)frame_count) {
+                ma_uint32 frames_to_write = (ma_uint32)frame_count;
+
+                ma_uint32 bytes_to_write = frames_to_write*stream.channels*(stream.sample_size/8);
+                memcpy(sub_buff, data, bytes_to_write);
+
+                // Any leftover frames should be filled with zeros.
+                ma_uint32 leftover_frame_count = sub_buff_size_in_frames - frames_to_write;
+
+                if (leftover_frame_count > 0) memset(sub_buff + bytes_to_write, 0, leftover_frame_count*stream.channels*(stream.sample_size/8));
+
+                stream.buffer->is_sub_buffer_processed[sub_buff_to_update] = false;
+            }
+            else printf("ERROR: update_audio_stream(), attempting to write too many frames to buffer\n");
+        }
+        else printf("ERROR: update_audio_stream(), buffer not available for updating");
+    }
+}
+
+void update_audio_stream(Audio_Stream stream, const void *data, int frame_count)
+{
+    ma_mutex_lock(&audio_ctx.system.lock);
+    update_audio_stream_in_locked_state(stream, data, frame_count);
+    ma_mutex_unlock(&audio_ctx.system.lock);
+}
+
+Music load_music_stream(const char *file_path)
+{
+    Music music = {0};
+
+    drwav *wav = calloc(1, sizeof(drwav));
+    bool result = drwav_init_file(wav, file_path, NULL);
+
+    if (result) {
+        music.data = wav;
+        music.stream = load_audio_stream(wav->sampleRate, 16, wav->channels);
+        music.frame_count = wav->totalPCMFrameCount;
+        music.looping = true;
+    } else {
+        printf("ERROR: failed to load music stream\n");
+        drwav_uninit(wav);
+    }
+
+    return music;
+}
+
+void unload_music_stream(Music music)
+{
+    unload_audio_buffer(music.stream.buffer);
+    if (music.data) drwav_uninit(music.data);
+}
+
+void play_music_stream(Music music)
+{
+    if (music.stream.buffer) {
+        ma_uint32 frame_cursor_pos = music.stream.buffer->frame_cursor_pos;
+        play_audio_buffer(music.stream.buffer);
+        music.stream.buffer->frame_cursor_pos = frame_cursor_pos;
+    }
+}
+
+void stop_music_stream(Music music)
+{
+    stop_audio_buffer(music.stream.buffer);
+    drwav_seek_to_pcm_frame(music.data, 0);
+}
+
+void pause_music_stream(Music music)
+{
+    pause_audio_buffer(music.stream.buffer);
+}
+
+void resume_music_stream(Music music)
+{
+    resume_audio_buffer(music.stream.buffer);
+}
+
+void update_music_stream(Music music)
+{
+    if (!music.stream.buffer) return;
+    if (!music.stream.buffer->playing) return;
+
+    ma_mutex_lock(&audio_ctx.system.lock);
+
+    uint32_t sub_buff_size_in_frames = music.stream.buffer->size_in_frames/2;
+    int frame_size = music.stream.channels*music.stream.sample_size/8;
+    uint32_t pcm_size = sub_buff_size_in_frames*frame_size;
+
+    if (audio_ctx.system.pcm_buffer_size < pcm_size) {
+        free(audio_ctx.system.pcm_buffer);
+        audio_ctx.system.pcm_buffer = calloc(1, pcm_size);
+        audio_ctx.system.pcm_buffer_size = pcm_size;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        uint32_t frames_left = music.frame_count - music.stream.buffer->frames_processed;
+        uint32_t frames_to_stream = 0;
+
+        if (frames_left >= sub_buff_size_in_frames || music.looping) frames_to_stream = sub_buff_size_in_frames;
+        else frames_to_stream = frames_left;
+
+        if (frames_to_stream == 0) {
+            if (music.stream.buffer->is_sub_buffer_processed[0] && music.stream.buffer->is_sub_buffer_processed[1]) {
+                ma_mutex_unlock(&audio_ctx.system.lock);
+                stop_music_stream(music);
+                return;
+            }
+            ma_mutex_unlock(&audio_ctx.system.lock);
+            return;
+        }
+
+        if (music.stream.buffer && !music.stream.buffer->is_sub_buffer_processed[i]) continue;
+
+        int frame_count_still_needed = frames_to_stream;
+        int frame_count_read_total = 0;
+
+        while (true) {
+            if (music.stream.sample_size == 16) {
+                short *out_buff = (short *)((char*)audio_ctx.system.pcm_buffer + frame_count_read_total*frame_size);
+                int frame_count_read = drwav_read_pcm_frames_s16(music.data, frame_count_still_needed, out_buff);
+                frame_count_read_total += frame_count_read;
+                frame_count_still_needed -= frame_count_read;
+                if (!frame_count_still_needed) break;
+                else drwav_seek_to_pcm_frame(music.data, 0);
+            } else if (music.stream.sample_size == 32) {
+                float *out_buff = (float*)((char*)audio_ctx.system.pcm_buffer + frame_count_read_total*frame_size);
+                int frame_count_read = drwav_read_pcm_frames_f32(music.data, frame_count_still_needed, out_buff);
+                frame_count_read_total += frame_count_read;
+                frame_count_still_needed -= frame_count_read;
+                if (!frame_count_still_needed) break;
+                else drwav_seek_to_pcm_frame(music.data, 0);
+            }
+        }
+
+        update_audio_stream_in_locked_state(music.stream, audio_ctx.system.pcm_buffer, frames_to_stream);
+    }
+
+    ma_mutex_unlock(&audio_ctx.system.lock);
+}

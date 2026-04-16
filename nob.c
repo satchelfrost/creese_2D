@@ -123,7 +123,7 @@ bool build_example(Cmd *cmd, const char *example_name, const char *target)
     /* build director strings and return early if no rebuild is necessary */
     const char *build_dir = (target == "linux") ? LINUX : WINDOWS;
     const char *src  = temp_sprintf(SRC"%s.c", example_name);
-    const char *exec = temp_sprintf("%s%s", build_dir, example_name);
+    const char *exec = temp_sprintf("%s%s%s", build_dir, example_name, (target == "windows") ? ".exe" : "");
     const char *creese_obj = temp_sprintf("%screese_2D.o", build_dir);
     int src_touched = needs_rebuild1(exec, src);
     int creese_touched = needs_rebuild1(exec, creese_obj);
