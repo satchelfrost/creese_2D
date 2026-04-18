@@ -27,6 +27,7 @@ const char *examples[] = {
     "example_text",
     "example_tuxedo_man",
     "example_audio",
+    "example_collision",
 };
 
 /* header only modules are precompiled */

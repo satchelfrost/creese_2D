@@ -200,5 +200,8 @@ void resume_music_stream(Music music);
 /* misc */
 Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
 uint32_t color_to_uint32_t(Color color);
+bool rectangle_collision(Rectangle r0, Rectangle r1);
+bool rectangle_circle_collision(Rectangle r, int cx, int cy, int radius);
+bool circle_circle_collision(int c0x, int c0y, int r0, int c1x, int c1y, int r1);
 
 #endif // CREESE_2D_H_
