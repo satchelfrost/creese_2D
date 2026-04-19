@@ -9,6 +9,7 @@ int main()
     Image image = load_image("assets/stone.png");
     if (!image.data) return 1;
 
+    int N = 3;
     int scale = 2;
     int tile_width = image.width/scale;
     int tile_height = image.height/scale;
@@ -27,25 +28,23 @@ int main()
 
     while (!window_should_close()) {
         Mouse mouse = get_mouse_position();
-
         V2f inv_x = v2f_mul(inv_i, v2f(mouse.x-window_width/2.0f, mouse.x-window_width/2.0f));
         V2f inv_y = v2f_mul(inv_j, v2f(mouse.y, mouse.y));
         V2i coords_by_mouse = v2i2f(v2f_add(inv_x, inv_y));
 
         begin_drawing(BLUE);
             /* draw tiles */
-            for (int y = 0; y < 3; y++) {
-                for (int x = 0; x < 3; x++) {
+            for (int y = 0; y < N; y++) {
+                for (int x = 0; x < N; x++) {
                     V2f xv = v2f_mul(i_hat, v2f(x, x));
                     V2f yv = v2f_mul(j_hat, v2f(y, y));
                     V2f coord = v2f_add(xv, yv);
                     if (coords_by_mouse.x == x && coords_by_mouse.y == y &&
-                        0 <= coords_by_mouse.x && coords_by_mouse.x < 3 &&
-                        0 <= coords_by_mouse.y && coords_by_mouse.y < 3)
+                        0 <= coords_by_mouse.x && coords_by_mouse.x < N &&
+                        0 <= coords_by_mouse.y && coords_by_mouse.y < N)
                         draw_image_scaled_down_tint(image, coord.x + window_width/2.0f - tile_width/2.0f, coord.y, scale, scale, RED);
                     else
                         draw_image_scaled_down(image, coord.x + window_width/2.0f - tile_width/2.0f, coord.y, scale, scale);
-                    
                 }
             }
 
