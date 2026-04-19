@@ -296,3 +296,61 @@ Mouse get_mouse_position()
 {
     return mouse;
 }
+
+bool rectangle_collision(Rectangle r0, Rectangle r1)
+{
+    /*
+     * x comparison
+     *
+     * r0.x
+     *  +-------+
+     *       +--------+
+     *      r1.x
+     *
+     * y comparison
+     *
+     * r0.y +
+     *      |
+     *      | + r1.y
+     *      | |
+     *      + |
+     *        |
+     *        +
+     */
+    return (r0.x < r1.x + r1.width) && (r0.x + r0.width > r1.x) &&
+           (r0.y < r1.y + r1.height) && (r0.y + r0.height > r1.y);
+}
+
+bool rectangle_circle_collision(Rectangle r, int cx, int cy, int radius)
+{
+    /*
+     *  Three possible cases in 1 dimension:
+     *
+     *  case 1: point x is to the left of segment (closest point on segment is far left)
+     *
+     * x  +----------+
+     *
+     *  case 2: point x is to the right of segment (closest point on segment is far right)
+     *
+     *    +----------+  x
+     *
+     *  case 3: point x is on segment (closest point on segment is the point x)
+     *
+     *    +--x-------+
+     *
+     *  closest x & y are just these three tests
+     */
+    int closest_x = (cx < r.x) ? r.x : (cx > r.x + r.width) ? (r.x + r.width) : cx;
+    int closest_y = (cy < r.y) ? r.y : (cy > r.y + r.height) ? (r.y + r.height) : cy;
+    int dx = closest_x - cx;
+    int dy = closest_y - cy;
+    return  dx*dx + dy*dy < radius*radius;
+}
+
+bool circle_circle_collision(int c0x, int c0y, int r0, int c1x, int c1y, int r1)
+{
+    int dx = c0x - c1x;
+    int dy = c0y - c1y;
+    int r  = r0 + r1;
+    return dx*dx + dy*dy < r*r;
+}
