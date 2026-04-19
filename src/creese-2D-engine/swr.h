@@ -34,6 +34,8 @@ void swr_draw_image_rect_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, i
 void swr_draw_image_rect_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y);
 void swr_draw_image_rect_scaled_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y);
 void swr_draw_image_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y);
+void swr_draw_image_scaled_down(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y);
+void swr_draw_image_scaled_down_tint(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y, uint32_t tint);
 void swr_draw_line(uint8_t *buff, int x0, int y0, int x1, int y1, uint32_t color);
 void swr_draw_triangle_wireframe(uint8_t *buff, int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
 void swr_draw_triangle(uint8_t *buff, int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
@@ -54,6 +56,23 @@ void swr_draw_aabb_2D(uint8_t *buff, int x_min, int y_min, int x_max, int y_max,
 void swr_clear_background(uint8_t *buff, uint32_t color)
 {
     for (int i = 0; i < SWR_FRAME_WIDTH*SWR_FRAME_HEIGHT; i++) ((uint32_t *)buff)[i] = color;
+}
+
+uint32_t swr_tint(uint32_t color_a, uint32_t color_b)
+{
+    uint32_t color_a_r = (color_a >> 0 & 0xff);
+    uint32_t color_a_g = (color_a >> 8 & 0xff);
+    uint32_t color_a_b = (color_a >>16 & 0xff);
+    uint32_t color_a_a = (color_a >>24 & 0xff);
+    uint32_t color_b_r = (color_b >> 0 & 0xff);
+    uint32_t color_b_g = (color_b >> 8 & 0xff);
+    uint32_t color_b_b = (color_b >>16 & 0xff);
+    uint32_t res_r = (color_a_r + color_b_r)/2;
+    uint32_t res_g = (color_a_g + color_b_g)/2;
+    uint32_t res_b = (color_a_b + color_b_b)/2;
+    uint32_t res_a = color_a_a;
+
+    return res_a<<24 | res_b<<16 | res_g<<8 | res_r;
 }
 
 uint32_t swr_alpha_blend(uint32_t top, uint32_t bottom)
@@ -240,6 +259,42 @@ void swr_draw_image_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w,
             if (!(0 <= xi && xi < w))               continue; // image bounds check
             uint32_t color = ((uint32_t *)image)[yi*w + xi];
             swr_put_pixel(buff, xp, yp, color);
+        }
+    }
+}
+
+void swr_draw_image_scaled_down(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y)
+{
+    for (int y = 0; y < h/scale_y; y++) {
+        int yi = y*scale_y;
+        int yp = y0 + y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
+        if (!(0 <= yi && yi < h))                continue; // image bounds check
+        for (int x = 0; x < w/scale_x; x++) {
+            int xi = x*scale_x;
+            int xp = x0 + x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
+            if (!(0 <= xi && xi < w))               continue; // image bounds check
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, color);
+        }
+    }
+}
+
+void swr_draw_image_scaled_down_tint(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y, uint32_t tint)
+{
+    for (int y = 0; y < h/scale_y; y++) {
+        int yi = y*scale_y;
+        int yp = y0 + y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
+        if (!(0 <= yi && yi < h))                continue; // image bounds check
+        for (int x = 0; x < w/scale_x; x++) {
+            int xi = x*scale_x;
+            int xp = x0 + x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
+            if (!(0 <= xi && xi < w))               continue; // image bounds check
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, swr_tint(color, tint));
         }
     }
 }
