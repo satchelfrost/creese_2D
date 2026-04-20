@@ -19,26 +19,28 @@ int main()
     // | i.x     j.x | | x |
     // |             | |   | = x*i + y*j
     // | i.y     j.y | | y |
-    V2f i_hat = v2f(1.0*tile_width*0.5, 0.5*tile_height);
-    V2f j_hat = v2f(-1.0*tile_width*0.5, 0.5*tile_height);
+    M2f index_to_screen = {
+        ._11 =  tile_width*0.5, ._12 =  -tile_width*0.5,
+        ._21 = tile_height*0.5, ._22 =  tile_height*0.5,
+    };
 
     /* calculate the inverse so that we can use mouse coordinates to find the tile index */
     //            -1
-    // | a     b |       1     | d      -c |
+    // | a     b |       1     | d      -b |
     // |         | = --------- |           |
-    // | c     d |   (ad - bc) | -b      a |
-    float a = i_hat.x, b = j_hat.x;
-    float c = i_hat.y, d = j_hat.y;
+    // | c     d |   (ad - bc) | -c      a |
+    float a = index_to_screen.c[0], b = index_to_screen.c[1];
+    float c = index_to_screen.c[2], d = index_to_screen.c[3];
     float det = 1.0f/(a*d - b*c);
-    V2f inv_i = v2f(d*det, -c*det);
-    V2f inv_j = v2f(-b*det, a*det);
+    M2f screen_to_index = {
+        ._11 =  d*det, ._12 = -b*det,
+        ._21 = -c*det, ._22 =  a*det,
+    };
 
     while (!window_should_close()) {
         /* use the mouse position and inverse to calculate tile index */
         Mouse mouse = get_mouse_position();
-        V2f inv_vx = v2f_mul(inv_i, v2f(mouse.x-window_width/2.0f, mouse.x-window_width/2.0f));
-        V2f inv_vy = v2f_mul(inv_j, v2f(mouse.y, mouse.y));
-        V2i tile_idx = v2i2f(v2f_add(inv_vx, inv_vy));
+        V2i tile_idx = v2i2f(m2f_mul_vec(screen_to_index, v2f(mouse.x-window_width/2.0f, mouse.y)));
         bool in_bounds = 0 <= tile_idx.x && tile_idx.x < N &&
                          0 <= tile_idx.y && tile_idx.y < N;
 
@@ -46,9 +48,7 @@ int main()
             /* draw tiles */
             for (int y = 0; y < N; y++) {
                 for (int x = 0; x < N; x++) {
-                    V2f vx = v2f_mul(i_hat, v2f(x, x));
-                    V2f vy = v2f_mul(j_hat, v2f(y, y));
-                    V2f tile = v2f_add(vx, vy);
+                    V2f tile = m2f_mul_vec(index_to_screen, v2f(x, y));
                     tile.x += window_width/2.0f - tile_width/2.0f;
                     if (tile_idx.x == x && tile_idx.y == y && in_bounds)
                         draw_image_scaled_down_tint(image, tile.x, tile.y, scale_down, scale_down, RED);
