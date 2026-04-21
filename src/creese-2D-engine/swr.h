@@ -34,6 +34,7 @@ void swr_draw_image_rect_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, i
 void swr_draw_image_rect_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y);
 void swr_draw_image_rect_scaled_flip_x(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int rect_x, int rect_y, int rect_w, int rect_h, int scale_x, int scale_y);
 void swr_draw_image_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y);
+void swr_draw_image_scaled_tint(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y, uint32_t tint);
 void swr_draw_image_scaled_down(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y);
 void swr_draw_image_scaled_down_tint(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y, uint32_t tint);
 void swr_draw_line(uint8_t *buff, int x0, int y0, int x1, int y1, uint32_t color);
@@ -259,6 +260,24 @@ void swr_draw_image_scaled(uint8_t *buff, uint8_t *image, int x0, int y0, int w,
             if (!(0 <= xi && xi < w))               continue; // image bounds check
             uint32_t color = ((uint32_t *)image)[yi*w + xi];
             swr_put_pixel(buff, xp, yp, color);
+        }
+    }
+}
+
+void swr_draw_image_scaled_tint(uint8_t *buff, uint8_t *image, int x0, int y0, int w, int h, int scale_x, int scale_y, uint32_t tint)
+{
+    for (int y = 0; y < h*scale_y; y++) {
+        int yi = y/scale_y;
+        int yp = y0 + y;
+        if (!(0 <= yp && yp < SWR_FRAME_HEIGHT)) continue; // frame bounds check
+        if (!(0 <= yi && yi < h))                continue; // image bounds check
+        for (int x = 0; x < w*scale_x; x++) {
+            int xi = x/scale_x;
+            int xp = x0 + x;
+            if (!(0 <= xp && xp < SWR_FRAME_WIDTH)) continue; // frame bounds check
+            if (!(0 <= xi && xi < w))               continue; // image bounds check
+            uint32_t color = ((uint32_t *)image)[yi*w + xi];
+            swr_put_pixel(buff, xp, yp, swr_tint(color, tint));
         }
     }
 }

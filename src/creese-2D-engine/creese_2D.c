@@ -157,6 +157,11 @@ void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y)
     swr_draw_image_scaled(frame_buff, image.data, x, y, image.width, image.height, scale_x, scale_y);
 }
 
+void draw_image_scaled_tint(Image image, int x, int y, int scale_x, int scale_y, Color tint)
+{
+    swr_draw_image_scaled_tint(frame_buff, image.data, x, y, image.width, image.height, scale_x, scale_y, color_to_uint32_t(tint));
+}
+
 void draw_image_scaled_down(Image image, int x, int y, int scale_x, int scale_y)
 {
     swr_draw_image_scaled_down(frame_buff, image.data, x, y, image.width, image.height, scale_x, scale_y);

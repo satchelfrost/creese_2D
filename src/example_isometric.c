@@ -2,17 +2,19 @@
 
 int main()
 {
-    int window_width = 768;
-    int window_height = 384;
+    int window_width = 500;
+    int window_height = 500;
     init_window(window_width, window_height, "isometric");
 
-    Image image = load_image("assets/stone.png");
+    Image image = load_image("assets/iso_cube_top.png");
+    Image front_cube = load_image("assets/iso_cube.png");
     if (!image.data) return 1;
+    if (!front_cube.data) return 1;
 
-    int N = 3;
-    int scale_down = 2;
-    int tile_width = image.width/scale_down;
-    int tile_height = image.height/scale_down;
+    int N = 5;
+    int scale_up = 4;
+    int tile_width = image.width*scale_up;
+    int tile_height = image.height*scale_up;
 
     /* good explanation of the math for this: https://youtu.be/04oQ2jOUjkU?si=Rr0un32qptYn9XLL */
     // equation for tile index (x, y) to screen coordinates:
@@ -44,16 +46,22 @@ int main()
         bool in_bounds = 0 <= tile_idx.x && tile_idx.x < N &&
                          0 <= tile_idx.y && tile_idx.y < N;
 
+        if (RGFW_isKeyPressed(RGFW_space)) log_fps();
         begin_drawing(BLUE);
             /* draw tiles */
             for (int y = 0; y < N; y++) {
                 for (int x = 0; x < N; x++) {
                     V2f tile = m2f_mul_vec(index_to_screen, v2f(x, y));
                     tile.x += window_width/2.0f - tile_width/2.0f;
-                    if (tile_idx.x == x && tile_idx.y == y && in_bounds)
-                        draw_image_scaled_down_tint(image, tile.x, tile.y, scale_down, scale_down, RED);
-                    else
-                        draw_image_scaled_down(image, tile.x, tile.y, scale_down, scale_down);
+                    bool highlighted = tile_idx.x == x && tile_idx.y == y && in_bounds;
+                    Image img = (x == N - 1 || y == N - 1) ? front_cube : image;
+                    if (highlighted) {
+                        tile.y -= tile_height/2.0f;
+                        draw_image_scaled_tint(img, tile.x, tile.y, scale_up, scale_up, RED);
+                    } else {
+                        draw_image_scaled(img, tile.x, tile.y, scale_up, scale_up);
+                    }
+
                 }
             }
         end_drawing();

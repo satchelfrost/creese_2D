@@ -83,6 +83,7 @@ void draw_image(Image image, int x, int y);
 void draw_image_flip_x(Image image, int x, int y);
 void draw_image_flip_y(Image image, int x, int y);
 void draw_image_scaled(Image image, int x, int y, int scale_x, int scale_y);
+void draw_image_scaled_tint(Image image, int x, int y, int scale_x, int scale_y, Color tint);
 void draw_image_scaled_down(Image image, int x, int y, int scale_x, int scale_y);
 void draw_image_scaled_down_tint(Image image, int x, int y, int scale_x, int scale_y, Color tint);
 void draw_image_rect(Image image, Rectangle r, int x, int y);
