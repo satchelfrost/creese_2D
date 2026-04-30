@@ -29,6 +29,7 @@ const char *examples[] = {
     "example_audio",
     "example_isometric",
     "example_collision",
+    "example_vla",
 };
 
 /* header only modules are precompiled */

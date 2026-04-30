@@ -302,6 +302,11 @@ Mouse get_mouse_position()
     return mouse;
 }
 
+bool mouse_inside_window()
+{
+    return RGFW_window_isMouseInside(window);
+}
+
 bool rectangle_collision(Rectangle r0, Rectangle r1)
 {
     /*

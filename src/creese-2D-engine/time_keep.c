@@ -9,6 +9,10 @@
 #include <windows.h>
 #endif
 
+#define FPS_CAPTURE_FRAMES_COUNT 30
+#define FPS_AVERAGE_TIME_SECONDS 0.5f
+#define FPS_STEP (FPS_AVERAGE_TIME_SECONDS/FPS_CAPTURE_FRAMES_COUNT)
+
 static struct {
     double curr;
     double prev;
@@ -81,6 +85,39 @@ void log_fps()
         printf("FPS: %d (%fms)\n", curr_fps, get_frame_time() * 1000.0f);
         fps = curr_fps;
     }
+}
+
+int get_avg_fps()
+{
+    int fps = 0;
+
+    static int index = 0;
+    static double history[FPS_CAPTURE_FRAMES_COUNT] = {0};
+    static double average = 0, last = 0;
+    double fps_frame = get_frame_time();
+
+    if (time_keep.frame_count == 0) {
+        average = 0;
+        last = 0;
+        index = 0;
+
+        for (int i = 0; i < FPS_CAPTURE_FRAMES_COUNT; i++) history[i] = 0;
+    }
+
+    if (fps_frame == 0) return 0;
+
+    if ((get_time() - last) > FPS_STEP)
+    {
+        last = get_time();
+        index = (index + 1) % FPS_CAPTURE_FRAMES_COUNT;
+        average -= history[index];
+        history[index] = fps_frame / FPS_CAPTURE_FRAMES_COUNT;
+        average += history[index];
+    }
+
+    fps = (int)roundf((float)1.0f/average);
+
+    return fps;
 }
 
 void wait_time(double seconds)

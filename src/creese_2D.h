@@ -146,6 +146,7 @@ typedef struct {
 } Mouse;
 
 Mouse get_mouse_position();
+bool mouse_inside_window();
 
 /* time_keep.c */
 void begin_timer();
@@ -153,6 +154,7 @@ void end_timer();
 double get_frame_time();
 double get_time();
 int get_fps();
+int get_avg_fps();
 void log_fps();
 void wait_time(double seconds);
 
