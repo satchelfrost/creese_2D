@@ -6,15 +6,17 @@ int main()
     int window_height = 500;
     init_window(window_width, window_height, "isometric");
 
-    Image image = load_image("assets/iso_cube_top.png");
-    Image front_cube = load_image("assets/iso_cube.png");
-    if (!image.data) return 1;
+    /* we have two separate sprite images to avoid some overdraw
+     * 5ms improvement tested on 10 year old laptop */
+    Image front_cube = load_image("assets/iso_cube.png");   // only rendered for front cubes
+    Image top_cube = load_image("assets/iso_cube_top.png"); // only rendered for top cubes (and not selected)
+    if (!top_cube.data) return 1;
     if (!front_cube.data) return 1;
 
     int N = 5;
     int scale_up = 4;
-    int tile_width = image.width*scale_up;
-    int tile_height = image.height*scale_up;
+    int tile_width = top_cube.width*scale_up;
+    int tile_height = top_cube.height*scale_up;
 
     /* good explanation of the math for this: https://youtu.be/04oQ2jOUjkU?si=Rr0un32qptYn9XLL */
     // equation for tile index (x, y) to screen coordinates:
@@ -33,10 +35,10 @@ int main()
     // | c     d |   (ad - bc) | -c      a |
     float a = index_to_screen.c[0], b = index_to_screen.c[1];
     float c = index_to_screen.c[2], d = index_to_screen.c[3];
-    float det = 1.0f/(a*d - b*c);
+    float inv_det = 1.0f/(a*d - b*c);
     M2f screen_to_index = {
-        ._11 =  d*det, ._12 = -b*det,
-        ._21 = -c*det, ._22 =  a*det,
+        ._11 =  d*inv_det, ._12 = -b*inv_det,
+        ._21 = -c*inv_det, ._22 =  a*inv_det,
     };
 
     while (!window_should_close()) {
@@ -54,14 +56,13 @@ int main()
                     V2f tile = m2f_mul_vec(index_to_screen, v2f(x, y));
                     tile.x += window_width/2.0f - tile_width/2.0f;
                     bool highlighted = tile_idx.x == x && tile_idx.y == y && in_bounds;
-                    Image img = (x == N - 1 || y == N - 1) ? front_cube : image;
                     if (highlighted) {
                         tile.y -= tile_height/2.0f;
-                        draw_image_scaled_tint(img, tile.x, tile.y, scale_up, scale_up, RED);
+                        draw_image_scaled_tint(front_cube, tile.x, tile.y, scale_up, scale_up, RED);
                     } else {
+                        Image img = (x == N - 1 || y == N - 1) ? front_cube : top_cube;
                         draw_image_scaled(img, tile.x, tile.y, scale_up, scale_up);
                     }
-
                 }
             }
         end_drawing();

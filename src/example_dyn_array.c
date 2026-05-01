@@ -9,12 +9,12 @@ typedef struct {
 } Circle;
 
 typedef struct {
-    /* common vla structure */
+    /* common dynamic array structure */
     Circle *items;   // must have name items, but can point to any type
     size_t count;    // must have name count, and be size_t
     size_t capacity; // must have name capcity, and be size_t
 
-    /* additional information not related to vla */
+    /* additional information not related to dynamic array */
     float timer;
 } Circles;
 
@@ -35,7 +35,7 @@ Color rand_color()
 
 int main()
 {
-    init_window(500, 500, "variable length array");
+    init_window(500, 500, "dynamic array");
 
     Circles circles = {0};
     Font font = load_font("assets/RobotoMono-Medium.ttf", 32);
@@ -67,7 +67,7 @@ int main()
                 draw_circle(c.position.x, c.position.y, c.radius, c.color);
             }
 
-            /* string building is also a vla build into nob */
+            /* string building is also a dynamic array built into nob */
             String_Builder sb = {0};
             sb_appendf(&sb, "Timer:%d", 10 - (int)circles.timer);
             int padding = 10;
