@@ -82,9 +82,6 @@ void init_audio_device(void)
     config.capture.channels = 1;
     config.sampleRate = AUDIO_DEVICE_SAMPLE_RATE;
     config.dataCallback = on_send_audio_data_to_device;
-    // config.playback.pDeviceID = NULL;
-    // config.capture.pDeviceID = NULL;
-    // config.pUserData = NULL;
 
     result = ma_device_init(&audio_ctx.system.context, &config, &audio_ctx.system.device);
     if (result != MA_SUCCESS) {
