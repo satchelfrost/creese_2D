@@ -23,12 +23,12 @@ int main()
 
     while (!window_should_close()) {
         /* input */
-        Mouse mouse = get_mouse_position();
+        V2i mouse = get_mouse_position();
         r1.x = mouse.x - 25;
         r1.y = mouse.y - 25;
         c0.x = mouse.x;
         c0.y = mouse.y;
-        if (RGFW_isMousePressed(RGFW_mouseLeft)) collision_test = (collision_test + 1)%COLLISION_TEST_COUNT;
+        if (is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) collision_test = (collision_test + 1)%COLLISION_TEST_COUNT;
 
         /* collision */
         switch (collision_test) {

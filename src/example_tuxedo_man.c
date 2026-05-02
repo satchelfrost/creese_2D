@@ -34,13 +34,6 @@ int main()
 
     float scale = 5.0;
     Sprite sprite = load_sprite_from_image(image, TUXEDO_ANIM_COUNT, TUXEDO_ANIM_COUNT, scale);
-
-    /* these offsets deal with the fact that the sprite sheet has a black border around each sprite */
-    // sprite.sub_image.offset.x += 1;
-    // sprite.sub_image.offset.y += 1;
-    // sprite.sub_image.size.x -= 1;
-    // sprite.sub_image.size.y -= 1;
-
     V2f player_position = {.x = -5, .y = window_height/2.0f + 70 };
     int intro_sequence = 0;
     float sequence_timer = 0;

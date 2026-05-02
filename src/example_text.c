@@ -1,4 +1,5 @@
 #include "creese_2D.h"
+#include <string.h> // strlen
 
 int main()
 {
@@ -14,8 +15,8 @@ int main()
     int width = font.glyphs[0].x_advance; // since this is monospace all xadvance values are the same
 
     while (!window_should_close()) {
-        if (RGFW_isKeyPressed(RGFW_right)) idx++;
-        if (RGFW_isKeyPressed(RGFW_left))  idx--;
+        if (is_key_pressed(KEY_RIGHT)) idx++;
+        if (is_key_pressed(KEY_LEFT))  idx--;
         
         begin_drawing(WHITE);
             /* write a message on the first line (half height) */

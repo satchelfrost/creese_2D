@@ -8,7 +8,7 @@ int main()
     Sound sound = load_sound("assets/weird.wav");
 
     while (!window_should_close()) {
-        if (RGFW_isKeyPressed(RGFW_space)) play_sound(sound);
+        if (is_key_pressed(KEY_SPACE)) play_sound(sound);
         begin_drawing(BLUE);
         end_drawing();
     }

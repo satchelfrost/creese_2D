@@ -43,8 +43,8 @@ int main()
     while (!window_should_close()) {
         /* input */
         if (mouse_inside_window()) {
-            if (RGFW_isMousePressed(RGFW_mouseLeft))  {
-                Mouse mouse = get_mouse_position();
+            if (is_mouse_button_pressed(MOUSE_BUTTON_LEFT))  {
+                V2i mouse = get_mouse_position();
                 Circle circle = {
                     .radius = rand_float()*(10+9) + 9,
                     .color  = rand_color(),

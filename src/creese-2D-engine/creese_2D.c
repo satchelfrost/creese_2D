@@ -12,19 +12,21 @@ static int win_height = 0;
 #include "../external/stb_image.h"
 #include "../external/stb_truetype.h"
 
+#define RGFWDEF extern
+#include "../external/RGFW.h"
+
 /* modules */
 #include "time_keep.c"
 #include "sprite.c"
 #include "audio.c"
+#include "input.c"
 
 /* global variables local to this file */
 static int win_x = 0;
 static int win_y = 0;
 static RGFW_window *window = NULL;
-static RGFW_event event = {0};
 static RGFW_surface *surface = NULL;
 static uint8_t *frame_buff = NULL;
-static Mouse mouse = {0};
 
 #define DEFAULT_BITMAP_WIDTH 400
 #define DEFAULT_BITMAP_HEIGHT 400
@@ -54,16 +56,7 @@ void close_window()
 
 bool window_should_close()
 {
-    bool result = RGFW_window_shouldClose(window);
-    while (RGFW_window_checkEvent(window, &event)) {
-        if (event.type == RGFW_quit) result = true;
-    }
-
-    if (RGFW_window_isMouseInside(window)) {
-        RGFW_window_getMouse(window, &mouse.x, &mouse.y);
-    }
-
-    return result;
+    return RGFW_window_shouldClose(window);
 }
 
 void begin_drawing(Color bg_color)
@@ -76,6 +69,7 @@ void end_drawing()
 {
     RGFW_window_blitSurface(window, surface);
     end_timer();
+    poll_input_events();
 }
 
 void clear_background(Color bg_color)
@@ -297,16 +291,6 @@ uint32_t color_to_uint32_t(Color color)
     return a << 24 | b << 16 | g << 8 | r;
 }
 
-Mouse get_mouse_position()
-{
-    return mouse;
-}
-
-bool mouse_inside_window()
-{
-    return RGFW_window_isMouseInside(window);
-}
-
 bool rectangle_collision(Rectangle r0, Rectangle r1)
 {
     /*
@@ -363,4 +347,9 @@ bool circle_circle_collision(int c0x, int c0y, int r0, int c1x, int c1y, int r1)
     int dy = c0y - c1y;
     int r  = r0 + r1;
     return dx*dx + dy*dy < r*r;
+}
+
+void *get_window_ptr()
+{
+    return window;
 }

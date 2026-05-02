@@ -43,12 +43,12 @@ int main()
 
     while (!window_should_close()) {
         /* use the mouse position and inverse to calculate tile index */
-        Mouse mouse = get_mouse_position();
+        V2i mouse = get_mouse_position();
         V2i tile_idx = v2i2f(m2f_mul_vec(screen_to_index, v2f(mouse.x-window_width/2.0f, mouse.y)));
         bool in_bounds = 0 <= tile_idx.x && tile_idx.x < N &&
                          0 <= tile_idx.y && tile_idx.y < N;
 
-        if (RGFW_isKeyPressed(RGFW_space)) log_fps();
+        if (is_key_pressed(KEY_SPACE)) log_fps();
         begin_drawing(BLUE);
             /* draw tiles */
             for (int y = 0; y < N; y++) {
