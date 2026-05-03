@@ -39,6 +39,9 @@ Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uin
         return sprite;
     }
 
+    horizontal_sprite_count = (horizontal_sprite_count) ? horizontal_sprite_count : 1;
+    vertical_sprite_count   = (vertical_sprite_count)   ? vertical_sprite_count   : 1;
+
     float x = image.width/(float)horizontal_sprite_count;
     float y = image.height/(float)vertical_sprite_count;
     sprite.sub_image.shift_amt.x = x;
@@ -49,6 +52,7 @@ Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uin
     sprite.animation.playing = true;
     sprite.animation.timeout = DEFAULT_ANIMATION_TIMOUT;
     sprite.scale = (scale > 0) ? scale : 1.0f;
+    sprite.sub_image.rect = get_anim_sub_rect(sprite);
 
     return sprite;
 }
@@ -56,6 +60,11 @@ Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uin
 void draw_sprite(Sprite sprite, int x, int y)
 {
     draw_image_rect_scaled(sprite.image, sprite.sub_image.rect, x, y, sprite.scale, sprite.scale);
+}
+
+void draw_sprite_flip_x(Sprite sprite, int x, int y)
+{
+    draw_image_rect_scaled_flip_x(sprite.image, sprite.sub_image.rect, x, y, sprite.scale, sprite.scale);
 }
 
 void draw_sprite_centered(Sprite sprite, int x, int y)

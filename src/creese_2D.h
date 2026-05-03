@@ -260,6 +260,7 @@ Rectangle get_anim_sub_rect(Sprite sprite);
 void update_animation(Sprite *sprite, uint32_t total_anim_frames);
 Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uint32_t vertical_sprite_count, float scale);
 void draw_sprite(Sprite sprite, int x, int y);
+void draw_sprite_flip_x(Sprite sprite, int x, int y);
 void draw_sprite_centered(Sprite sprite, int x, int y);
 void draw_sprite_centered_debug(Sprite sprite, int x, int y);
 
