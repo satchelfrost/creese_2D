@@ -443,7 +443,7 @@ Sound load_sound_from_wave(Wave wave)
                                                        audio_ctx.system.device.sampleRate, frame_count,
                                                        AUDIO_BUFFER_USAGE_STATIC);
         if (!audio_buffer) {
-            printf("ERROR: failed to create buffer");
+            printf("ERROR: failed to create buffer\n");
             return sound;
         }
 
