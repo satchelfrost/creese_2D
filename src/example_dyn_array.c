@@ -40,6 +40,9 @@ int main()
     Circles circles = {0};
     Font font = load_font("assets/RobotoMono-Medium.ttf", 32);
 
+    /* string building is also a dynamic array built into nob */
+    String_Builder sb = {0};
+
     while (!window_should_close()) {
         /* input */
         if (mouse_inside_window()) {
@@ -67,8 +70,7 @@ int main()
                 draw_circle(c.position.x, c.position.y, c.radius, c.color);
             }
 
-            /* string building is also a dynamic array built into nob */
-            String_Builder sb = {0};
+            sb.count = 0; // reuse string builder memory
             sb_appendf(&sb, "Timer:%d", 10 - (int)circles.timer);
             int padding = 10;
             draw_text_at_base(font, sb.items, sb.count, padding, font.height*2/3 + padding, BLACK);
@@ -81,6 +83,9 @@ int main()
             draw_text_at_base(font, sb.items, sb.count, padding, font.height*6/3 + padding, BLACK);
         end_drawing();
     }
+
+    /* not really necessary for this small example, but this is how you would free */
+    sb_free(sb);
 
     close_window();
     return 0;
