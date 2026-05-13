@@ -179,6 +179,12 @@ void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x,
                                r.x, r.y, r.width, r.height, scale_x, scale_y);
 }
 
+void draw_image_rect_scaled_tint(Image image, Rectangle r, int x, int y, int scale_x, int scale_y, Color tint)
+{
+    swr_draw_image_rect_scaled_tint(frame_buff, image.data, x, y, image.width, image.height,
+                                    r.x, r.y, r.width, r.height, scale_x, scale_y, color_to_uint32_t(tint));
+}
+
 void draw_image_rect_scaled_flip_x(Image image, Rectangle r, int x, int y, int scale_x, int scale_y)
 {
     swr_draw_image_rect_scaled_flip_x(frame_buff, image.data, x, y, image.width, image.height,

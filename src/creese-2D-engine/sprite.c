@@ -59,12 +59,15 @@ Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uin
 
 void draw_sprite(Sprite sprite, int x, int y)
 {
-    draw_image_rect_scaled(sprite.image, sprite.sub_image.rect, x, y, sprite.scale, sprite.scale);
+    draw_sprite_pro(sprite, v2i(x, y), WHITE, false);
 }
 
-void draw_sprite_flip_x(Sprite sprite, int x, int y)
+void draw_sprite_pro(Sprite sprite, V2i pos, Color tint, bool flip_x)
 {
-    draw_image_rect_scaled_flip_x(sprite.image, sprite.sub_image.rect, x, y, sprite.scale, sprite.scale);
+    if (flip_x)
+        draw_image_rect_scaled_flip_x(sprite.image, sprite.sub_image.rect, pos.x, pos.y, sprite.scale, sprite.scale);
+    else
+        draw_image_rect_scaled_tint(sprite.image, sprite.sub_image.rect, pos.x, pos.y, sprite.scale, sprite.scale, tint);
 }
 
 void draw_sprite_centered(Sprite sprite, int x, int y)

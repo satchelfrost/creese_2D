@@ -26,7 +26,7 @@ typedef struct {
 
 struct {
     V2f pos;
-    V2f render_pos;
+    V2i render_pos;
     V2f velocity;
     bool jumping;
     float gravity;
@@ -58,17 +58,17 @@ void load_player(int ground)
     robot.gun.fire_sound = load_sound("assets/weird.wav");
 }
 
-V2f render_pos_from_bottom_center(V2f bottom_center, Sprite sprite)
+V2i render_pos_from_bottom_center(V2f bottom_center, Sprite sprite)
 {
-    return v2f(bottom_center.x - sprite.sub_image.size.x/2.0f,
+    return v2i(bottom_center.x - sprite.sub_image.size.x/2.0f,
                bottom_center.y - sprite.sub_image.size.y);
 }
 
 // TODO: new_state = handle_action_state(current_state) // action_state e.g. jump, fire, etc.
 // TODO: order things better i.e. input, then physics/character state, then animation,
-// TODO: have less of a zoo of draw sprite functions, for example the basic draw sprite should have flip_x and tint
 // TODO: some sort of bug with window focus? Whenever I get an OS notification (e.g. low battery) weird shit happens
 // TODO: firing doesn't feel great, maybe is_key_down(KEY_SPACE)? But we'll need a firing timout.
+// TODO: probably want fixed delta time
 
 enum {
     MOVEMENT_NONE,
@@ -120,7 +120,7 @@ int main()
 
                 /* only play firing animation and sound if we've found inactive projectile to reuse */
                 robot.gun.play_firing_animation = true;
-                // play_sound(robot.gun.fire_sound);
+                play_sound(robot.gun.fire_sound);
 
                 robot.gun.projectiles[i].pos.y = robot.pos.y - 25;
                 robot.gun.projectiles[i].pos.x = robot.pos.x + robot.facing_direction*30;
@@ -139,7 +139,7 @@ int main()
             }
         }
 
-        /* projeatile physics */
+        /* projectile physics */
         for (int i = 0; i < 4; i++) {
             if (!robot.gun.projectiles[i].active) continue;
 
@@ -167,19 +167,16 @@ int main()
 
         begin_drawing(BLUE);
             robot.render_pos = render_pos_from_bottom_center(robot.pos, robot.sprites[0]);
-            if (robot.movement) {
-                if (robot.facing_direction > 0) draw_sprite(robot.sprites[ROBOT_ANIM_RUN], robot.render_pos.x, robot.render_pos.y);
-                else           draw_sprite_flip_x(robot.sprites[ROBOT_ANIM_RUN], robot.render_pos.x, robot.render_pos.y);
-            } else if (robot.gun.play_firing_animation) {
-                if (robot.facing_direction > 0) draw_sprite(robot.sprites[ROBOT_ANIM_FIRE], robot.render_pos.x, robot.render_pos.y);
-                else           draw_sprite_flip_x(robot.sprites[ROBOT_ANIM_FIRE], robot.render_pos.x, robot.render_pos.y);
-            } else if (robot.jumping) {
-                if (robot.facing_direction > 0) draw_sprite(robot.sprites[ROBOT_ANIM_JUMP], robot.render_pos.x, robot.render_pos.y);
-                else           draw_sprite_flip_x(robot.sprites[ROBOT_ANIM_JUMP], robot.render_pos.x, robot.render_pos.y);
-            } else {
-                if (robot.facing_direction > 0) draw_sprite(robot.sprites[ROBOT_ANIM_IDLE], robot.render_pos.x, robot.render_pos.y);
-                else           draw_sprite_flip_x(robot.sprites[ROBOT_ANIM_IDLE], robot.render_pos.x, robot.render_pos.y);
-            }
+            bool facing_left = robot.facing_direction < 0;
+            if (robot.movement)
+                draw_sprite_pro(robot.sprites[ROBOT_ANIM_RUN], robot.render_pos, WHITE, facing_left);
+            else if (robot.gun.play_firing_animation)
+                draw_sprite_pro(robot.sprites[ROBOT_ANIM_FIRE], robot.render_pos, WHITE, facing_left);
+            else if (robot.jumping)
+                draw_sprite_pro(robot.sprites[ROBOT_ANIM_JUMP], robot.render_pos, WHITE, facing_left);
+            else
+                draw_sprite_pro(robot.sprites[ROBOT_ANIM_IDLE], robot.render_pos, WHITE, facing_left);
+           
             for (int i = 0; i < 4; i++) {
                 if (!robot.gun.projectiles[i].active) continue;
                 draw_circle(robot.gun.projectiles[i].pos.x, robot.gun.projectiles[i].pos.y, 10, YELLOW);

@@ -1,5 +1,11 @@
 #include "creese_2D.h"
 
+/*
+ * Note that this example doesn't use the sprite API because it was written before the sprite API
+ * was written. However, I'm not updating it to use the new API becuase even though the sprite API would
+ * eliminate lines of code, it would also eliminate understanding.
+ * */
+
 int main()
 {
     int window_width = 500;
