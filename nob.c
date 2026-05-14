@@ -31,6 +31,7 @@ const char *examples[] = {
     "example_collision",
     "example_dyn_array",
     "example_robot",
+    "example_shmup",
 };
 
 /* header only modules are precompiled */
