@@ -210,6 +210,7 @@ void draw_image_scaled_down(Image image, int x, int y, int scale_x, int scale_y)
 void draw_image_scaled_down_tint(Image image, int x, int y, int scale_x, int scale_y, Color tint);
 void draw_image_rect(Image image, Rectangle r, int x, int y);
 void draw_image_rect_scaled(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
+void draw_image_rect_scaled_tint(Image image, Rectangle r, int x, int y, int scale_x, int scale_y, Color tint);
 void draw_image_rect_scaled_flip_x(Image image, Rectangle r, int x, int y, int scale_x, int scale_y);
 
 /* Text */
@@ -260,7 +261,7 @@ Rectangle get_anim_sub_rect(Sprite sprite);
 void update_animation(Sprite *sprite, uint32_t total_anim_frames);
 Sprite load_sprite_from_image(Image image, uint32_t horizontal_sprite_count, uint32_t vertical_sprite_count, float scale);
 void draw_sprite(Sprite sprite, int x, int y);
-void draw_sprite_flip_x(Sprite sprite, int x, int y);
+void draw_sprite_pro(Sprite sprite, V2i pos, Color tint, bool flip_x);
 void draw_sprite_centered(Sprite sprite, int x, int y);
 void draw_sprite_centered_debug(Sprite sprite, int x, int y);
 

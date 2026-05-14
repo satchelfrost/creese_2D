@@ -58,7 +58,10 @@ int main()
                     bool highlighted = tile_idx.x == x && tile_idx.y == y && in_bounds;
                     if (highlighted) {
                         tile.y -= tile_height/2.0f;
-                        draw_image_scaled_tint(front_cube, tile.x, tile.y, scale_up, scale_up, RED);
+                        Color tint = RED;
+                        tint.g *= 2;
+                        tint.b *= 2;
+                        draw_image_scaled_tint(front_cube, tile.x, tile.y, scale_up, scale_up, tint);
                     } else {
                         Image img = (x == N - 1 || y == N - 1) ? front_cube : top_cube;
                         draw_image_scaled(img, tile.x, tile.y, scale_up, scale_up);
