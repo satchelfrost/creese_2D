@@ -25,12 +25,13 @@ typedef struct {
         Image image;
         Sprite sprite;
         float scale;
+        Sound sound;
     } flame;
 } Cursor;
 
 typedef struct {
-    Rectangle rect;
-    Color color;
+    V2i position;
+    Image image;
 } Torch;
 
 enum {
@@ -42,6 +43,7 @@ enum {
 typedef struct {
     Torch torches[TORCH_COUNT];
     int torch_padding;
+    int torch_scale;
 
     Rectangle barrier;
     bool barrier_burnt;
@@ -91,31 +93,29 @@ int main()
     int window_width = 800;
     int window_height = 640;
     // disable_mouse_cursor();
+    init_audio_device();
     init_window(window_width, window_height, "Creese 2D First Ever Jam!");
 
     /* initialize assets */
     Cursor cursor = {0};
     cursor.flame.image = load_image("assets/flames.png");
-    cursor.flame.scale = 5.0;
+    cursor.flame.scale = 3.0;
     cursor.flame.sprite = load_sprite_from_image(cursor.flame.image, 7, 1, cursor.flame.scale);
     cursor.flame.sprite.animation.horizontal = true;
+    cursor.flame.sound = load_sound("assets/flame.wav");
     Font font = load_font("assets/RobotoMono-Medium.ttf", 32);
     String_Builder sb = {0};
 
     /* initialize level */
     Level1 level1 = {0};
-    level1.torch_padding = 50;
-    level1.torches[TORCH_LEFT].rect.width  = 50;
-    level1.torches[TORCH_LEFT].rect.height = 100;
-    level1.torches[TORCH_LEFT].rect.x = level1.torch_padding;
-    level1.torches[TORCH_LEFT].rect.y = level1.torch_padding;
-    level1.torches[TORCH_LEFT].color = RED;
-
-    level1.torches[TORCH_RIGHT].rect.width  = 50;
-    level1.torches[TORCH_RIGHT].rect.height = 100;
-    level1.torches[TORCH_RIGHT].rect.x = window_width - level1.torch_padding - level1.torches[TORCH_RIGHT].rect.width;
-    level1.torches[TORCH_RIGHT].rect.y = level1.torch_padding;
-    level1.torches[TORCH_RIGHT].color = RED;
+    level1.torch_padding = 100;
+    level1.torch_scale = 3;
+    level1.torches[TORCH_LEFT].image = load_image("assets/torch.png");
+    level1.torches[TORCH_LEFT].position.x = level1.torch_padding;
+    level1.torches[TORCH_LEFT].position.y = level1.torch_padding;
+    level1.torches[TORCH_RIGHT].image = level1.torches[TORCH_LEFT].image; // be careful not to double free
+    level1.torches[TORCH_RIGHT].position.x = window_width - level1.torch_padding - level1.torches[TORCH_RIGHT].image.width*level1.torch_scale;
+    level1.torches[TORCH_RIGHT].position.y = level1.torch_padding;
 
     level1.barrier.x = 100;
     level1.barrier.y = 400;
@@ -145,8 +145,15 @@ int main()
 
         /* physics/state */
         for (int i = 0; i < TORCH_COUNT; i++) {
-            if (cursor.pressed && rectangle_contains(level1.torches[i].rect, cursor.position.x, cursor.position.y)) {
+            Rectangle collision_rect = {
+                .x = level1.torches[i].position.x,
+                .y = level1.torches[i].position.y,
+                .width  = level1.torch_scale*level1.torches[i].image.width,
+                .height = level1.torch_scale*level1.torches[i].image.height,
+            };
+            if (cursor.pressed && rectangle_contains(collision_rect, cursor.position.x, cursor.position.y)) {
                 cursor.element = ELEMENT_FIRE;
+                play_sound(cursor.flame.sound);
             }
         }
 
@@ -154,6 +161,7 @@ int main()
             cursor.element == ELEMENT_FIRE) {
             level1.barrier_burnt = true;
             cursor.element = ELEMENT_NONE;
+            play_sound(cursor.flame.sound);
         }
 
         /* update animations */
@@ -172,7 +180,7 @@ int main()
             /* cursor */
             render_cursor(cursor);
             for (int i = 0; i < TORCH_COUNT; i++)
-                draw_rectangle(level1.torches[i].rect, level1.torches[i].color);
+                draw_image_scaled(level1.torches[i].image, level1.torches[i].position.x, level1.torches[i].position.y, 3, 3);
             draw_rectangle(level1.barrier, (level1.barrier_burnt) ? BLACK : BLUE);
 
             /* debug */
