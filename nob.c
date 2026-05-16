@@ -17,6 +17,7 @@ const char *creese_2D_srcs[] = {
     ENGINE"time_keep.c",
     ENGINE"sprite.c",
     ENGINE"audio.c",
+    ENGINE"input.c",
     ENGINE"swr.h",
 };
 

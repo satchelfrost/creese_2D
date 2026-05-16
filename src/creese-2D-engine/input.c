@@ -132,8 +132,15 @@ V2i get_mouse_position()
 {
     V2i mouse = {0};
     RGFW_window *window = get_window_ptr();
-    RGFW_window_getMouse(window, &mouse.x, &mouse.y);
-    return mouse;
+    if (RGFW_window_getMouse(window, &mouse.x, &mouse.y)) return mouse;
+    else return v2i(0,0);
+}
+
+V2i get_global_mouse_position()
+{
+    V2i mouse = {0};
+    if (RGFW_getGlobalMouse(&mouse.x, &mouse.y)) return mouse;
+    else return v2i(0,0);
 }
 
 bool mouse_inside_window()

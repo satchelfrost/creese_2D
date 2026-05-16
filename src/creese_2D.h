@@ -168,6 +168,7 @@ typedef struct Color {
 
 /* general */
 uint8_t *get_frame_buffer();
+void disable_mouse_cursor(); // TODO: contribute, e.g. must call before init_window
 void init_window(int width, int height, char *title);
 void close_window(void);
 bool window_should_close(void);
@@ -270,6 +271,7 @@ bool is_key_released(Keyboard_Key key);
 bool is_key_down(Keyboard_Key key);
 bool mouse_inside_window();
 V2i get_mouse_position();
+V2i get_global_mouse_position();
 bool is_mouse_button_pressed(Mouse_Button button);
 bool is_mouse_button_released(Mouse_Button button);
 bool is_mouse_button_down(Mouse_Button button);
@@ -285,6 +287,7 @@ int get_fps();
 int get_avg_fps();
 void log_fps();
 void wait_time(double seconds);
+size_t get_frame_count(); // TOOD: contrib
 
 /* audio.c */
 typedef struct Audio_Buffer Audio_Buffer;

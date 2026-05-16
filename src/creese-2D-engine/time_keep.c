@@ -146,3 +146,8 @@ void wait_time(double seconds)
     /* partial busy wait loop */
     while (get_time() < destination_time) {}
 }
+
+size_t get_frame_count()
+{
+   return time_keep.frame_count;
+}

@@ -27,6 +27,7 @@ static int win_y = 0;
 static RGFW_window *window = NULL;
 static RGFW_surface *surface = NULL;
 static uint8_t *frame_buff = NULL;
+static uint32_t flags = 0;
 
 #define DEFAULT_BITMAP_WIDTH 400
 #define DEFAULT_BITMAP_HEIGHT 400
@@ -36,11 +37,17 @@ uint8_t *get_frame_buffer()
     return frame_buff;
 }
 
+void disable_mouse_cursor()
+{
+    flags |= RGFW_windowHideMouse;
+}
+
 void init_window(int width, int height, char *title)
 {
     win_width = width;
     win_height = height;
-    uint32_t flags = RGFW_windowNoResize | RGFW_windowCenter;
+    flags |= RGFW_windowNoResize;
+    flags |= RGFW_windowCenter;
     window = RGFW_createWindow(title, win_x, win_y, width, height, flags);
     frame_buff = malloc(SWR_FRAME_WIDTH*SWR_FRAME_HEIGHT*4);
     surface = RGFW_createSurface(frame_buff, SWR_FRAME_WIDTH, SWR_FRAME_HEIGHT, RGFW_formatRGBA8);
