@@ -37,6 +37,7 @@ static const unsigned short rgfw_to_creese_2D[] = {
     [KEY_EIGHT] =         RGFW_8,
     [KEY_NINE] =          RGFW_9,
     [KEY_EQUAL] =         RGFW_equals,
+    [KEY_ENTER] =         RGFW_enter,
     [KEY_BACKSPACE] =     RGFW_backSpace,
     [KEY_TAB] =           RGFW_tab,
     [KEY_CAPS_LOCK] =     RGFW_capsLock,
