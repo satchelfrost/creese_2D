@@ -1,6 +1,10 @@
-# Creese 2D
+# Reese and Cris Game Jam
 
-This is a test.
+A quick weekend game jam between friends. The ramdomly generated theme is **sponge hurried escape**.
+
+The game will be built using Creese 2D software renderer.
+
+## Creese 2D
 
 A simple 2D software renderer with a few extra facilities.
 
