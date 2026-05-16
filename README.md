@@ -45,3 +45,27 @@ Then you should be able to run them with wine (or simply run them on windows):
 ```bash
 wine ./build/windows/example_circle.exe
 ```
+
+## Game Jam Specific Commands
+
+Run game after building (linux only):
+
+```bash
+./nob --run
+```
+
+Launch debugger (gf2 required) after building:
+
+```bash
+./nob --debug
+```
+
+To install gf2 go to https://github.com/nakst/gf and build from source, then put gf2 in your path.
+
+Build examples (no longer on by default):
+
+```bash
+./nob --examples
+```
+
+Since the examples do take a second to build, we now make this an explicit command.
