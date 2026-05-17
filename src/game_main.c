@@ -8,7 +8,7 @@
  * Any new c includes do need to update nob.c's game_dep_srcs[] */
 #include "game_example_dependency.c"
 
-#define DEBUG 0
+#define DEBUG 1
 
 // TODO: zelda unlock sound analogue
 // TODO: water sound
