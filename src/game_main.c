@@ -10,6 +10,12 @@
 
 #define DEBUG 1
 
+// TODO: zelda unlock sound analogue
+// TODO: background music
+// TODO: water sound
+// TODO: fire burn sound
+// TODO: success music
+
 typedef enum {
     ELEMENT_NONE,
     ELEMENT_FIRE,
