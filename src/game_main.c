@@ -211,7 +211,7 @@ void unload_level1(Level1 level1)
     unload_image(level1.image);
 }
 
-int get_rendered_text_width(Font font, char* text, int text_length)
+int get_rendered_text_width(Font font, char* text, int text_length) // TODO: contribute
 {
     int width = 0;
     for (int i = 0; i < text_length; ++i) {
@@ -262,6 +262,7 @@ int main()
 
     Font debug_font = load_font("assets/RobotoMono-Medium.ttf", 32);
     Font title_font = load_font("assets/Metamorphous-Regular.ttf", 42);
+    Font game_font = load_font("assets/Metamorphous-Regular.ttf", 32);
     String_Builder sb = {0};
 
     Main_Menu menu = {0};
@@ -306,8 +307,8 @@ int main()
                 // menu text
                 char* text = "Click to play...";
                 text_len = strlen(text);
-                rendered_text_width = get_rendered_text_width(title_font, text, text_len);
-                draw_text_at_base(title_font, text, text_len, (window_width - rendered_text_width)/2, 3*window_height/4, BLACK);
+                rendered_text_width = get_rendered_text_width(game_font, text, text_len);
+                draw_text_at_base(game_font, text, text_len, (window_width - rendered_text_width)/2, 3*window_height/4, BLACK);
 
                 draw_cursor(cursor);
 
@@ -322,6 +323,9 @@ int main()
             if (DEBUG && is_key_pressed(KEY_SPACE))
                 player.sprite.animation.type = (player.sprite.animation.type + 1)%PLAYER_ANIM_COUNT;
 
+            if (DEBUG && is_key_pressed(KEY_ENTER))
+                game_mode = GAME_MODE_GAME_OVER;
+
             /* collision/state */
             for (int i = 0; i < TORCH_COUNT; i++) {
                 if (cursor.pressed && rectangle_contains(level1.torches[i].flame.rect, cursor.position.x, cursor.position.y)) {
@@ -329,7 +333,6 @@ int main()
                     play_sound(cursor.flame.sound);
                 }
             }
-
 
             /* water collision */
             if (cursor.pressed && rectangle_contains(level1.water_rect, cursor.position.x, cursor.position.y)) {
@@ -383,6 +386,37 @@ int main()
             end_drawing();
         break;
         case GAME_MODE_GAME_OVER:
+            /* update input */
+            cursor.position = v2f2i(get_mouse_position());
+            
+            if (is_key_pressed(KEY_ENTER)){
+                game_mode = GAME_MODE_MAIN_MENU;
+                continue;
+            }
+
+            // TODO: Add victory music
+
+            /* drawing */
+            begin_drawing(WHITE);
+                // background
+                draw_image_scaled(menu.image, 0, 0, menu.image_scale, menu.image_scale); //TODO: Change the backgound
+
+                // final message
+                char* final_text = "You escaped...";
+                int final_text_len = strlen(final_text);
+                int rendered_final_text_width = get_rendered_text_width(game_font, final_text, final_text_len);
+                draw_text_at_base(game_font, final_text, final_text_len, (window_width - rendered_final_text_width)/2, window_height/3, BLACK);
+
+                // interact text
+                char* interact_text = "Press ENTER to return to main menu...";
+                int interact_text_len = strlen(interact_text);
+                int rendered_interact_text_width = get_rendered_text_width(game_font, interact_text, interact_text_len);
+                draw_text_at_base(game_font, interact_text, interact_text_len, (window_width - rendered_interact_text_width)/2, 3*window_height/4, BLACK);
+
+                draw_cursor(cursor);
+
+                if (DEBUG) draw_fps(debug_font, &sb);
+            end_drawing();
         break;
         default:
         }
