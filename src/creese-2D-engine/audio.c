@@ -769,3 +769,8 @@ void update_music_stream(Music music)
 
     ma_mutex_unlock(&audio_ctx.system.lock);
 }
+
+void set_music_volume(Music music, float volume)
+{
+    set_audio_buffer_volume(music.stream.buffer, volume);
+}

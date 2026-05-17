@@ -23,6 +23,9 @@ void update_animation(Sprite *sprite, uint32_t total_anim_frames)
         if (sprite->animation.time > sprite->animation.timeout) {
             sprite->animation.time = 0;
             sprite->animation.frame = (sprite->animation.frame + 1)%total_anim_frames;
+            sprite->animation.frame_just_changed = true;
+        } else {
+            sprite->animation.frame_just_changed = false;
         }
     }
 

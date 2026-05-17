@@ -245,6 +245,7 @@ typedef struct {
         float time;
         float timeout;
         uint32_t frame;
+        bool frame_just_changed;
         uint32_t type;
         bool horizontal; // if true animation frames are left/right, as opposed to top/bottom
     } animation;
@@ -332,6 +333,7 @@ void stop_music_stream(Music music);
 void update_music_stream(Music music);
 void pause_music_stream(Music music);
 void resume_music_stream(Music music);
+void set_music_volume(Music music, float volume);
 
 /* misc */
 Rectangle get_bounding_rectangle_triangle(V2i v0, V2i v1, V2i v2);
