@@ -11,8 +11,6 @@
 #define DEBUG 1
 
 // TODO: zelda unlock sound analogue
-// TODO: water sound
-// TODO: fire burn sound
 // TODO: success music
 // TODO: walk sound
 
@@ -60,9 +58,9 @@ typedef struct {
 } Torch;
 
 enum {
-    TORCH_LEFT,
-    TORCH_RIGHT,
-    TORCH_COUNT,
+    L1_TORCH_LEFT,
+    L1_TORCH_RIGHT,
+    L1_TORCH_COUNT,
 };
 
 /* for now, the player animation type, and the player movement
@@ -76,7 +74,7 @@ typedef enum {
     PLAYER_ANIM_COUNT,
 } Player_Anim_Type;
 
-#define PLAYER_SPEED 75
+#define PLAYER_SPEED 80
 
 typedef struct {
     V2f position;
@@ -85,6 +83,7 @@ typedef struct {
     Image image;
     Sprite sprite;
     Rectangle rect;
+    int foot_step;
 } Player;
 
 typedef struct {
@@ -112,11 +111,18 @@ typedef struct {
 } Editor_Waypoints;
 
 typedef struct {
-    Torch torches[TORCH_COUNT];
+    Torch *items;
+    size_t count;
+    size_t capacity;
+} Torches;
+
+typedef struct {
+    Torches torches;
     int torch_padding;
     int torch_scale;
     int torch_flame_scale;
 
+    // TODO: remove
     V2i water_position;
     Rectangle water_rect;
 
@@ -129,7 +135,9 @@ typedef struct {
 
     Waypoints waypoints;
     Editor_Waypoints editor_waypoints;
-} Level1;
+
+    V2i player_start; // TODO: not using this yet
+} Level;
 
 typedef struct {
     Image image;
@@ -155,7 +163,7 @@ static int window_width = 800;
 static int window_height = 640;
 
 #define IDLE_ANIM_TIMEOUT 0.7f
-#define WALK_ANIM_TIMEOUT 0.1f
+#define WALK_ANIM_TIMEOUT 0.2f
 
 void switch_player_anim(Sprite *sprite, Player_Anim_Type anim_type)
 {
@@ -212,9 +220,9 @@ bool circle_contains_point(int cx, int cy, int radius, int x, int y)
     return dx*dx + dy*dy <= radius*radius;
 }
 
-Level1 load_level1(Sprite flame_sprite, Sprite water_sprite)
+Level load_level1(Sprite flame_sprite, Sprite water_sprite)
 {
-    Level1 level1 = {0};
+    Level level1 = {0};
 
     /* resourc allocation which we must free later */
     Image torch_image  = load_image("assets/torch.png");
@@ -229,31 +237,35 @@ Level1 load_level1(Sprite flame_sprite, Sprite water_sprite)
     level1.torch_padding = 100;
     level1.torch_scale = 4;
     level1.torch_flame_scale = 3.0;
-    level1.torches[TORCH_LEFT].image = torch_image;
-    level1.torches[TORCH_LEFT].position.x = level1.torch_padding;
-    level1.torches[TORCH_LEFT].position.y = level1.torch_padding;
-    level1.torches[TORCH_LEFT].flame.position.x = level1.torches[TORCH_LEFT].position.x - flame_fudge_factor;
-    level1.torches[TORCH_LEFT].flame.sprite = flame_sprite; // cursor is responsible for freeing this
-    level1.torches[TORCH_LEFT].flame.sprite.scale = level1.torch_flame_scale;
-    level1.torches[TORCH_LEFT].flame.position.y  = level1.torches[TORCH_LEFT].position.y;
-    level1.torches[TORCH_LEFT].flame.position.y -= level1.torches[TORCH_LEFT].flame.sprite.image.height*level1.torch_flame_scale;
-    level1.torches[TORCH_LEFT].flame.rect.x = level1.torches[TORCH_LEFT].flame.position.x;
-    level1.torches[TORCH_LEFT].flame.rect.y = level1.torches[TORCH_LEFT].flame.position.y;
-    level1.torches[TORCH_LEFT].flame.rect.width  = level1.torches[TORCH_LEFT].flame.sprite.sub_image.size.x*level1.torch_flame_scale;
-    level1.torches[TORCH_LEFT].flame.rect.height = level1.torches[TORCH_LEFT].flame.sprite.sub_image.size.y*level1.torch_flame_scale;
+    Torch torch1 = {0};
+    torch1.image = torch_image;
+    torch1.position.x = level1.torch_padding;
+    torch1.position.y = level1.torch_padding;
+    torch1.flame.position.x = level1.torch_padding - flame_fudge_factor;
+    torch1.flame.sprite = flame_sprite; // cursor is responsible for freeing this
+    torch1.flame.sprite.scale = level1.torch_flame_scale;
+    torch1.flame.position.y  = torch1.position.y;
+    torch1.flame.position.y -= torch1.flame.sprite.image.height*level1.torch_flame_scale;
+    torch1.flame.rect.x      = torch1.flame.position.x;
+    torch1.flame.rect.y      = torch1.flame.position.y;
+    torch1.flame.rect.width  = torch1.flame.sprite.sub_image.size.x*level1.torch_flame_scale;
+    torch1.flame.rect.height = torch1.flame.sprite.sub_image.size.y*level1.torch_flame_scale;
+    da_append(&level1.torches, torch1);
 
-    level1.torches[TORCH_RIGHT].image = torch_image;
-    level1.torches[TORCH_RIGHT].position.x = window_width - level1.torch_padding - level1.torches[TORCH_RIGHT].image.width*level1.torch_scale;
-    level1.torches[TORCH_RIGHT].position.y = level1.torch_padding;
-    level1.torches[TORCH_RIGHT].flame.sprite = flame_sprite; // cursor is responsible for freeing this
-    level1.torches[TORCH_RIGHT].flame.sprite.scale = level1.torch_flame_scale;
-    level1.torches[TORCH_RIGHT].flame.position.x = level1.torches[TORCH_RIGHT].position.x - flame_fudge_factor;
-    level1.torches[TORCH_RIGHT].flame.position.y  = level1.torches[TORCH_RIGHT].position.y;
-    level1.torches[TORCH_RIGHT].flame.position.y -= level1.torches[TORCH_RIGHT].flame.sprite.image.height*level1.torch_flame_scale;
-    level1.torches[TORCH_RIGHT].flame.rect.x = level1.torches[TORCH_RIGHT].flame.position.x;
-    level1.torches[TORCH_RIGHT].flame.rect.y = level1.torches[TORCH_RIGHT].flame.position.y;
-    level1.torches[TORCH_RIGHT].flame.rect.width  = level1.torches[TORCH_RIGHT].flame.sprite.sub_image.size.x*level1.torch_flame_scale;
-    level1.torches[TORCH_RIGHT].flame.rect.height = level1.torches[TORCH_RIGHT].flame.sprite.sub_image.size.y*level1.torch_flame_scale;
+    Torch torch2 = {0};
+    torch2.image = torch_image;
+    torch2.position.x = window_width - level1.torch_padding - torch_image.width*level1.torch_scale;
+    torch2.position.y = level1.torch_padding;
+    torch2.flame.sprite = flame_sprite; // cursor is responsible for freeing this
+    torch2.flame.sprite.scale = level1.torch_flame_scale;
+    torch2.flame.position.x  = torch2.position.x - flame_fudge_factor;
+    torch2.flame.position.y  = torch2.position.y;
+    torch2.flame.position.y -= torch2.flame.sprite.image.height*level1.torch_flame_scale;
+    torch2.flame.rect.x      = torch2.flame.position.x;
+    torch2.flame.rect.y      = torch2.flame.position.y;
+    torch2.flame.rect.width  = torch2.flame.sprite.sub_image.size.x*level1.torch_flame_scale;
+    torch2.flame.rect.height = torch2.flame.sprite.sub_image.size.y*level1.torch_flame_scale;
+    da_append(&level1.torches, torch2);
 
     /* water just a test */
     // level1.water_position = v2i(600, 450);
@@ -286,18 +298,136 @@ Level1 load_level1(Sprite flame_sprite, Sprite water_sprite)
     return level1;
 }
 
-void unload_level1(Level1 level1)
+void unload_level1(Level level1)
 {
-    unload_image(level1.torches[TORCH_LEFT].image); // left and right images were shared
+    unload_image(level1.torches.items[0].image);
     unload_image(level1.image);
     unload_image(level1.door_image);
 }
 
-void reset_level1(Level1 *level1)
+void reset_level1(Level *level1)
 {
     level1->barrier_burnt = false;
     level1->waypoints.target = 0;
 }
+
+void draw_level1(const Level *level1, const Player *player)
+{
+    /* level */
+    draw_image_scaled(level1->image, 0, 0, level1->image_scale, level1->image_scale);
+
+    /* torches */
+    for (size_t i = 0; i < level1->torches.count; i++) {
+        Torch torch = level1->torches.items[i];
+        draw_image_scaled(torch.image, torch.position.x, torch.position.y, level1->torch_scale, level1->torch_scale);
+        draw_sprite(torch.flame.sprite, torch.flame.position.x, torch.flame.position.y);
+        if (DEBUG) draw_rectangle_lines(torch.flame.rect, YELLOW);
+    }
+
+    // draw_sprite(cursor.water.sprite, level1->water_position.x, level1->water_position.y);
+    // if (DEBUG) draw_rectangle_lines(level1->water_rect, YELLOW);
+
+    if (!level1->barrier_burnt) draw_rectangle(level1->barrier, BLUE);
+
+    if (DEBUG) {
+        // actual way points
+        for (int i = 0; i < level1->waypoints.count; i++) {
+            Waypoint wp = level1->waypoints.items[i];
+            draw_circle(wp.position.x, wp.position.y, wp.radius, RED);
+        }
+        // editor debug way points
+        for (size_t i = 0; i < level1->editor_waypoints.count; i++) {
+            Waypoint wp = level1->editor_waypoints.items[i];
+            draw_circle(wp.position.x, wp.position.y, wp.radius, BLUE);
+        }
+    }
+
+    /* player */
+    draw_sprite(player->sprite, player->render_position.x, player->render_position.y);
+    if (DEBUG) draw_rectangle_lines(player->rect, YELLOW);
+
+    /* draw door after player */
+    V2i door_pos = v2i(window_width/2 - level1->image_scale*level1->door_image.width/2,0);
+    draw_image_scaled(level1->door_image, door_pos.x, door_pos.y, level1->image_scale, level1->image_scale);
+}
+
+// Level load_level2(Sprite flame_sprite, Sprite water_sprite)
+// {
+//     Level level1 = {0};
+//
+//     /* resourc allocation which we must free later */
+//     Image torch_image  = load_image("assets/torch.png");
+//     assert(torch_image.data);
+//     Image level1_image = load_image("assets/level1.png");
+//     assert(level1_image.data);
+//     Image level1_door_image = load_image("assets/level1_door.png");
+//     assert(level1_door_image.data);
+//
+//     /* initialize torches */
+//     int flame_fudge_factor = 4;
+//     level1.torch_padding = 100;
+//     level1.torch_scale = 4;
+//     level1.torch_flame_scale = 3.0;
+//     Torch torch1 = {0};
+//     torch1.image = torch_image;
+//     torch1.position.x = level1.torch_padding;
+//     torch1.position.y = level1.torch_padding;
+//     torch1.flame.position.x = level1.torch_padding - flame_fudge_factor;
+//     torch1.flame.sprite = flame_sprite; // cursor is responsible for freeing this
+//     torch1.flame.sprite.scale = level1.torch_flame_scale;
+//     torch1.flame.position.y  = torch1.position.y;
+//     torch1.flame.position.y -= torch1.flame.sprite.image.height*level1.torch_flame_scale;
+//     torch1.flame.rect.x      = torch1.flame.position.x;
+//     torch1.flame.rect.y      = torch1.flame.position.y;
+//     torch1.flame.rect.width  = torch1.flame.sprite.sub_image.size.x*level1.torch_flame_scale;
+//     torch1.flame.rect.height = torch1.flame.sprite.sub_image.size.y*level1.torch_flame_scale;
+//     da_append(&level1.torches, torch1);
+//
+//     Torch torch2 = {0};
+//     torch2.image = torch_image;
+//     torch2.position.x = window_width - level1.torch_padding - torch_image.width*level1.torch_scale;
+//     torch2.position.y = level1.torch_padding;
+//     torch2.flame.sprite = flame_sprite; // cursor is responsible for freeing this
+//     torch2.flame.sprite.scale = level1.torch_flame_scale;
+//     torch2.flame.position.x  = torch2.position.x - flame_fudge_factor;
+//     torch2.flame.position.y  = torch2.position.y;
+//     torch2.flame.position.y -= torch2.flame.sprite.image.height*level1.torch_flame_scale;
+//     torch2.flame.rect.x      = torch2.flame.position.x;
+//     torch2.flame.rect.y      = torch2.flame.position.y;
+//     torch2.flame.rect.width  = torch2.flame.sprite.sub_image.size.x*level1.torch_flame_scale;
+//     torch2.flame.rect.height = torch2.flame.sprite.sub_image.size.y*level1.torch_flame_scale;
+//     da_append(&level1.torches, torch2);
+//
+//     /* water just a test */
+//     // level1.water_position = v2i(600, 450);
+//     // level1.water_rect.x = level1.water_position.x + water_sprite.sub_image.size.x/2;
+//     // level1.water_rect.y = level1.water_position.y + water_sprite.sub_image.size.y;
+//     // level1.water_rect.width  = water_sprite.sub_image.size.x*2.0;
+//     // level1.water_rect.height = water_sprite.sub_image.size.y*2.0;
+//     UNUSED(water_sprite);
+//
+//     /* barrier which must be burnt */
+//     level1.barrier.x = 240;
+//     level1.barrier.y = 400;
+//     level1.barrier.width  = 20;
+//     level1.barrier.height = 100;
+//
+//     /* image for the level (aka the map/room)*/
+//     level1.image = level1_image;
+//     level1.image_scale = 2;
+//     level1.door_image = level1_door_image;
+//
+//     /* waypoints */
+//     level1.waypoints.items[0].radius = 5;
+//     level1.waypoints.items[0].position = v2i(window_width/2+40, level1.barrier.y + level1.barrier.height/2);
+//     level1.waypoints.items[0].next_anim = PLAYER_ANIM_UP;
+//     level1.waypoints.items[1].radius = 5;
+//     level1.waypoints.items[1].position = v2i(window_width/2, -40); // waypoint intentionally offscreen
+//     level1.waypoints.items[1].next_anim = PLAYER_ANIM_IDLE;
+//     level1.waypoints.count = 2;
+//
+//     return level1;
+// }
 
 int get_rendered_text_width(Font font, char* text, int text_length) // TODO: contribute
 {
@@ -327,8 +457,16 @@ int main()
     init_window(window_width, window_height, "Creese 2D First Ever Jam!");
 
     Music bg_music = load_music_stream("assets/background_music.wav");
-    play_music_stream(bg_music);
+    Music win_music = load_music_stream("assets/Loop_Minstrel_Dance.wav");
+    set_music_volume(win_music, 0.4);
     Sound game_start_sound = load_sound("assets/stone_door.wav");
+    play_music_stream(bg_music);
+    Sound secret_sound = load_sound("assets/secret_revealed.wav");
+    Sound step_sound[2];
+    step_sound[0] = load_sound("assets/step_0.wav");
+    step_sound[1] = load_sound("assets/step_1.wav");
+    set_sound_volume(step_sound[0], 0.3);
+    set_sound_volume(step_sound[1], 0.3);
 
     /* initialize cursor */
     Cursor cursor = {0};
@@ -346,7 +484,7 @@ int main()
     cursor.water.sprite.animation.horizontal = true;
 
     /* initialize level */
-    Level1 level1 = load_level1(cursor.flame.sprite, cursor.water.sprite);
+    Level level1 = load_level1(cursor.flame.sprite, cursor.water.sprite);
 
     Font debug_font = load_font("assets/RobotoMono-Medium.ttf", 32);
     Font title_font = load_font("assets/Metamorphous-Regular.ttf", 42);
@@ -417,12 +555,14 @@ int main()
             cursor.position = v2f2i(get_mouse_position());
             cursor.pressed  = is_mouse_button_pressed(MOUSE_BUTTON_LEFT);
 
+            /* debug */
             if (DEBUG && is_key_pressed(KEY_SPACE))
                 player.sprite.animation.type = (player.sprite.animation.type + 1)%PLAYER_ANIM_COUNT;
-
-            if (DEBUG && is_key_pressed(KEY_ENTER))
+            if (DEBUG && is_key_pressed(KEY_ENTER)) {
+                stop_music_stream(bg_music);
+                play_music_stream(win_music);
                 game_mode = GAME_MODE_GAME_OVER;
-
+            }
             if (DEBUG && is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)) {
                 Waypoint wp = {
                     .position = {
@@ -439,32 +579,7 @@ int main()
                 }
             }
 
-            // TODO: if level1
-
-            /* collision/state */
-            for (int i = 0; i < TORCH_COUNT; i++) {
-                if (cursor.pressed && rectangle_contains_point(level1.torches[i].flame.rect, cursor.position.x, cursor.position.y)) {
-                    cursor.element = ELEMENT_FIRE;
-                    play_sound(cursor.flame.sound);
-                }
-            }
-
-            /* water collision */
-            // if (cursor.pressed && rectangle_contains(level1.water_rect, cursor.position.x, cursor.position.y)) {
-            //     cursor.element = ELEMENT_WATER;
-            //     play_sound(cursor.water.sound);
-            // }
-
-            if (cursor.pressed && rectangle_contains_point(level1.barrier, cursor.position.x, cursor.position.y) &&
-                cursor.element == ELEMENT_FIRE) {
-                level1.barrier_burnt = true;
-                cursor.element = ELEMENT_NONE;
-                switch_player_anim(&player.sprite, PLAYER_ANIM_RIGHT);
-                play_sound(cursor.flame.sound);
-            }
-
-            /* player physics - step 1 walk
-             * TODO: for now player position is based on delta time (maybe not ideal, set_target_fps()?) */
+            /* player physics (TODO: framerate independent movement) */
             switch (player.sprite.animation.type) {
             case PLAYER_ANIM_UP:    player.position.y -= dt*PLAYER_SPEED; break;
             case PLAYER_ANIM_RIGHT: player.position.x += dt*PLAYER_SPEED; break;
@@ -473,63 +588,92 @@ int main()
             case PLAYER_ANIM_IDLE:                                        break;
             default:
             }
-
-            /* player physics - step 2 collision */
+            player.render_position = get_player_render_position(player.position, player.sprite, player.scale);
+            /* footsteps sound */
+            if (player.sprite.animation.type != PLAYER_ANIM_IDLE) {
+                if (player.sprite.animation.frame_just_changed) {
+                    play_sound(step_sound[player.foot_step]);
+                    player.foot_step = (player.foot_step + 1)%2;
+                }
+            }
             Waypoint target = level1.waypoints.items[level1.waypoints.target];
             update_player_collision_rect(&player);
-            if (rectangle_contains_point(player.rect, target.position.x, target.position.y)) {
-                switch_player_anim(&player.sprite, target.next_anim);
-                if (level1.waypoints.target + 1 < level1.waypoints.count)
+
+            /* collision */
+            switch (curr_level) {
+            case LEVEL_1: {
+                for (size_t i = 0; i < level1.torches.count; i++) {
+                    Torch torch = level1.torches.items[i];
+                    bool collision = rectangle_contains_point(torch.flame.rect, cursor.position.x, cursor.position.y);
+                    if (cursor.pressed && collision) {
+                        cursor.element = ELEMENT_FIRE;
+                        play_sound(cursor.flame.sound);
+                    }
+                }
+                bool barrier_collision = rectangle_contains_point(level1.barrier, cursor.position.x, cursor.position.y);
+                if (cursor.pressed &&  barrier_collision && cursor.element == ELEMENT_FIRE) {
+                    level1.barrier_burnt = true;
+                    cursor.element = ELEMENT_NONE;
+                    switch_player_anim(&player.sprite, PLAYER_ANIM_RIGHT);
+                    play_sound(cursor.flame.sound);
+                    play_sound(secret_sound);
+                }
+                if (rectangle_contains_point(player.rect, target.position.x, target.position.y)) {
+                    switch_player_anim(&player.sprite, target.next_anim);
                     level1.waypoints.target++;
+                    if (level1.waypoints.target >= level1.waypoints.count) {
+                        curr_level = LEVEL_2;
+                        level1.waypoints.target = 0;
+                    }
+                }
+            } break;
+            case LEVEL_2: {
+                return 0;
+            } break;
+            case LEVEL_3:
+            break;
+            case LEVEL_4:
+            break;
+            default:
             }
 
-            /* update animations */
-            update_animation(&cursor.flame.sprite, 7);
+            /* water collision */
+            // if (cursor.pressed && rectangle_contains(level1.water_rect, cursor.position.x, cursor.position.y)) {
+            //     cursor.element = ELEMENT_WATER;
+            //     play_sound(cursor.water.sound);
+            // }
+
+            /* level specific animations */
+            switch (curr_level) {
+            case LEVEL_1: {
+                for (size_t i = 0; i < level1.torches.count; i++)
+                    update_animation(&level1.torches.items[i].flame.sprite, 7);
+            } break;
+            case LEVEL_2:
+            break;
+            case LEVEL_3:
             // update_animation(&cursor.water.sprite, 7);
-            update_animation(&level1.torches[TORCH_LEFT].flame.sprite, 7);
-            update_animation(&level1.torches[TORCH_RIGHT].flame.sprite, 7);
+            break;
+            case LEVEL_4:
+            break;
+            default:
+            }
+
+            /* general animations */
+            update_animation(&cursor.flame.sprite, 7);
             update_animation(&player.sprite, 2);
 
             /* drawing */
             begin_drawing(WHITE);
-                /* level */
-                draw_image_scaled(level1.image, 0, 0, level1.image_scale, level1.image_scale);
-
-                /* torches */
-                for (int i = 0; i < TORCH_COUNT; i++) {
-                    draw_image_scaled(level1.torches[i].image, level1.torches[i].position.x, level1.torches[i].position.y, level1.torch_scale, level1.torch_scale);
-                    draw_sprite(level1.torches[i].flame.sprite, level1.torches[i].flame.position.x, level1.torches[i].flame.position.y);
-
-                    if (DEBUG)
-                        draw_rectangle_lines(level1.torches[i].flame.rect, YELLOW);
+                switch (curr_level) {
+                case LEVEL_1:
+                    draw_level1(&level1, &player);
+                break;
+                case LEVEL_2: break;
+                case LEVEL_3: break;
+                case LEVEL_4: break;
+                default:
                 }
-
-                // draw_sprite(cursor.water.sprite, level1.water_position.x, level1.water_position.y);
-                // if (DEBUG) draw_rectangle_lines(level1.water_rect, YELLOW);
-
-                if (!level1.barrier_burnt) draw_rectangle(level1.barrier, BLUE);
-
-                if (DEBUG) {
-                    // actual way points
-                    for (int i = 0; i < level1.waypoints.count; i++) {
-                        Waypoint wp = level1.waypoints.items[i];
-                        draw_circle(wp.position.x, wp.position.y, wp.radius, RED);
-                    }
-                    // editor debug way points
-                    for (size_t i = 0; i < level1.editor_waypoints.count; i++) {
-                        Waypoint wp = level1.editor_waypoints.items[i];
-                        draw_circle(wp.position.x, wp.position.y, wp.radius, BLUE);
-                    }
-                }
-
-                /* player */
-                player.render_position = get_player_render_position(player.position, player.sprite, player.scale);
-                draw_sprite(player.sprite, player.render_position.x, player.render_position.y);
-                if (DEBUG) draw_rectangle_lines(player.rect, YELLOW);
-
-                /* draw door after player */
-                V2i door_pos = v2i(window_width/2 - level1.image_scale*level1.door_image.width/2,0);
-                draw_image_scaled(level1.door_image, door_pos.x, door_pos.y, level1.image_scale, level1.image_scale);
 
                 /* cursor */
                 draw_cursor(cursor);
@@ -543,10 +687,13 @@ int main()
             
             if (is_key_pressed(KEY_ENTER)){
                 game_mode = GAME_MODE_MAIN_MENU;
+                stop_music_stream(win_music);
+                play_music_stream(bg_music);
                 continue;
             }
 
             // TODO: Add victory music
+            update_music_stream(win_music);
 
             /* drawing */
             begin_drawing(WHITE);
