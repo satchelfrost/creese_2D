@@ -20,6 +20,8 @@ typedef struct {
     Element element;
     V2f position;
     bool pressed;
+    Image image;
+    float scale;
 
     struct {
         Image image;
@@ -71,6 +73,8 @@ typedef struct {
 
 void render_cursor(Cursor cursor)
 {
+    draw_image_scaled(cursor.image, cursor.position.x, cursor.position.y, cursor.scale, cursor.scale);
+
     switch (cursor.element) {
     case ELEMENT_NONE:
     break;
@@ -107,20 +111,20 @@ int get_rendered_text_width(Font font, char* text, int text_length) {
     return width;
 }
 
-void draw_fps(Font font, String_Builder sb) {
-    sb.count = 0; // reuse string builder memory
-    sb_appendf(&sb, "FPS:%d", get_avg_fps());
-    int text_width = get_rendered_text_width(font, sb.items, sb.count);
+void draw_fps(Font font, String_Builder* sb) {
+    sb->count = 0; // reuse string builder memory
+    sb_appendf(sb, "FPS:%d", get_avg_fps());
+    int text_width = get_rendered_text_width(font, sb->items, sb->count);
     Rectangle fps_rect = {.width = text_width + 20, .height = font.height+5};
     draw_rectangle(fps_rect, WHITE);
-    draw_text_at_base(font, sb.items, sb.count, 10, font.height, BLACK);
+    draw_text_at_base(font, sb->items, sb->count, 10, font.height, BLACK);
 }
 
 int main()
 {
     int window_width = 800;
     int window_height = 640;
-    // disable_mouse_cursor();
+    disable_mouse_cursor();
     init_window(window_width, window_height, "Creese 2D First Ever Jam!");
 
     int game_mode = MAIN_MENU;
@@ -131,6 +135,9 @@ int main()
     cursor.flame.scale = 5.0;
     cursor.flame.sprite = load_sprite_from_image(cursor.flame.image, 7, 1, cursor.flame.scale);
     cursor.flame.sprite.animation.horizontal = true;
+    cursor.image = load_image("assets/cursors/tile_0087.png");
+    cursor.scale = 2.0;
+
     Font font = load_font("assets/RobotoMono-Medium.ttf", 32);
     Font title_font = load_font("assets/Metamorphous-Regular.ttf", 42);
     String_Builder sb = {0};
@@ -204,7 +211,7 @@ int main()
                 draw_text_at_base(font, text, text_len, (window_width - rendered_text_width)/2, 3*window_height/4, BLACK);
 
                 /* debug */
-                draw_fps(font, sb);
+                draw_fps(font, &sb);
             end_drawing();
         break;
         case GAME:
@@ -248,7 +255,7 @@ int main()
                 draw_rectangle(level1.barrier, (level1.barrier_burnt) ? BLACK : BLUE);
 
                 /* debug */
-                draw_fps(font, sb);
+                draw_fps(font, &sb);
             end_drawing();
         break;
         case GAME_OVER:
