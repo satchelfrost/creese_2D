@@ -96,6 +96,7 @@ typedef struct {
     V2i position;
     Sprite sprite;
     Rectangle rect;
+    bool active;
 } Torch_Flame;
 
 typedef struct {
@@ -117,6 +118,7 @@ typedef struct {
     Image image;
     int image_scale;
     Image exit_door_image;
+    Image exit_door_closed_image;
     Image entry_door_image;
 
     Waypoints waypoints;
@@ -129,6 +131,8 @@ typedef struct {
     Image burn_crate_image;
     V2i burn_crate_pos;
     float burn_crate_scale;
+
+    bool clear_condition;
 } Level;
 
 typedef struct {
@@ -227,7 +231,6 @@ Level load_level1(Sprite flame_sprite, Sprite water_sprite)
     /* initialize torches */
     level1.torch_flame_scale = 2.0;
     Torch_Flame torch1 = {0};
-
     torch1.position     = v2i(273, 150);
     torch1.sprite       = flame_sprite; // cursor is responsible for freeing this
     torch1.sprite.scale = level1.torch_flame_scale;
@@ -338,6 +341,17 @@ void draw_level1(const Level *level1, const Player *player)
     draw_image_scaled(level1->exit_door_image, door_pos.x, door_pos.y, level1->image_scale, level1->image_scale);
 }
 
+void init_torch(Torch_Flame *torch, V2i position, Sprite flame_sprite, float torch_flame_scale)
+{
+    torch->position     = position;
+    torch->sprite       = flame_sprite; // cursor is responsible for freeing this
+    torch->sprite.scale = torch_flame_scale;
+    torch->rect.x       = torch->position.x - torch_flame_scale*flame_sprite.sub_image.size.x/2;
+    torch->rect.y       = torch->position.y - torch_flame_scale*flame_sprite.sub_image.size.y/2;
+    torch->rect.width   = torch->sprite.sub_image.size.x*torch_flame_scale;
+    torch->rect.height  = torch->sprite.sub_image.size.y*torch_flame_scale;
+}
+
 Level load_level2(Sprite flame_sprite)
 {
     Level level2 = {0};
@@ -346,15 +360,45 @@ Level load_level2(Sprite flame_sprite)
 
     level2.image = load_image("assets/level2.png");
     assert(level2.image.data);
-    printf("level 2 image loaded\n");
     level2.entry_door_image = load_image("assets/level2_entry_door.png");
     assert(level2.entry_door_image.data);
     level2.exit_door_image = load_image("assets/level2_exit_door.png");
     assert(level2.exit_door_image.data);
+    level2.exit_door_closed_image = load_image("assets/level2_exit_door_closed.png");
+    assert(level2.exit_door_closed_image.data);
 
     level2.image_scale = 2;
 
-    UNUSED(flame_sprite);
+    /* torches */
+    level2.torch_flame_scale = 2.0;
+    Torch_Flame torch1 = {0};
+    init_torch(&torch1, v2i(177, 120), flame_sprite, level2.torch_flame_scale);
+    torch1.active = true;// torch 1 active by default
+    da_append(&level2.torches, torch1);
+
+    Torch_Flame torch2 = {0};
+    init_torch(&torch2, v2i(689, 87), flame_sprite, level2.torch_flame_scale);
+    da_append(&level2.torches, torch2);
+
+    Torch_Flame torch3 = {0};
+    init_torch(&torch3, v2i(689, 503), flame_sprite, level2.torch_flame_scale);
+    da_append(&level2.torches, torch3);
+
+    Torch_Flame torch4 = {0};
+    init_torch(&torch4, v2i(145, 503), flame_sprite, level2.torch_flame_scale);
+    da_append(&level2.torches, torch4);
+
+    level2.waypoints.items[0].radius = 5;
+    level2.waypoints.items[0].position = v2i(385, 280);
+    level2.waypoints.items[0].next_anim = PLAYER_ANIM_IDLE;
+    level2.waypoints.items[1].radius = 5;
+    level2.waypoints.items[1].position = v2i(830, 304); // waypoint intentionally offscreen
+    level2.waypoints.items[1].next_anim = PLAYER_ANIM_IDLE;
+    level2.waypoints.count = 2;
+
+
+
+    level2.player_start = v2f(400, 800);
 
     return level2;
 }
@@ -363,18 +407,61 @@ void draw_level2(const Level *level2, const Player *player)
 {
     draw_image_scaled(level2->image, 0, 0, level2->image_scale, level2->image_scale);
     UNUSED(player);
+
+    /* torches */
+    for (size_t i = 0; i < level2->torches.count; i++) {
+        Torch_Flame torch = level2->torches.items[i];
+        if (DEBUG) draw_rectangle_lines(torch.rect, YELLOW);
+        if (!torch.active) continue;
+        draw_sprite(torch.sprite, torch.rect.x, torch.rect.y);
+    }
+
+    if (DEBUG) {
+        // actual way points
+        for (int i = 0; i < level2->waypoints.count; i++) {
+            Waypoint wp = level2->waypoints.items[i];
+            draw_circle(wp.position.x, wp.position.y, wp.radius, RED);
+        }
+        // editor debug way points
+        for (size_t i = 0; i < level2->editor_waypoints.count; i++) {
+            Waypoint wp = level2->editor_waypoints.items[i];
+            draw_circle(wp.position.x, wp.position.y, wp.radius, BLUE);
+        }
+    }
+
+    /* player */
+    draw_sprite(player->sprite, player->render_position.x, player->render_position.y);
+    if (DEBUG) draw_rectangle_lines(player->rect, YELLOW);
+
+    /* draw door after player */
+    V2i door_pos = v2i(window_width/2 - level2->image_scale*level2->entry_door_image.width/2,
+                       window_height  - level2->image_scale*level2->entry_door_image.height);
+    draw_image_scaled(level2->entry_door_image, door_pos.x, door_pos.y, level2->image_scale, level2->image_scale);
+
+    door_pos = v2i(window_width - level2->image_scale*level2->exit_door_image.width, 225);
+    draw_image_scaled(level2->exit_door_image, door_pos.x, door_pos.y, level2->image_scale, level2->image_scale);
+
+    /* draw door closed if no clear condition */
+    door_pos.x -= level2->image_scale*level2->exit_door_image.width;
+    door_pos.x -= 5;
+    door_pos.y += 20;
+    if (!level2->clear_condition) {
+        draw_image_scaled(level2->exit_door_closed_image, door_pos.x, door_pos.y, level2->image_scale, level2->image_scale);
+    }
 }
 
 void unload_level2(Level level2)
 {
     unload_image(level2.image);
     unload_image(level2.exit_door_image);
+    unload_image(level2.exit_door_closed_image);
     unload_image(level2.entry_door_image);
 }
 
-// void reset_level2(Level *level2)
-// {
-// }
+void reset_level2(Level *level2)
+{
+    level2->clear_condition = false;
+}
 
 int get_rendered_text_width(Font font, char* text, int text_length) // TODO: contribute
 {
@@ -530,8 +617,8 @@ int main()
                     .radius = 10,
                 };
                 // TODO: depending on which level
-                da_append(&level1.editor_waypoints, wp);
-                printf("waypoint(%zu) = %d, %d\n", level1.editor_waypoints.count - 1, wp.position.x, wp.position.y);
+                da_append(&level2.editor_waypoints, wp);
+                printf("waypoint(%zu) = %d, %d\n", level2.editor_waypoints.count - 1, wp.position.x, wp.position.y);
             }
 
             /* player physics (TODO: framerate independent movement) */
@@ -551,12 +638,12 @@ int main()
                     player.foot_step = (player.foot_step + 1)%2;
                 }
             }
-            Waypoint target = level1.waypoints.items[level1.waypoints.target];
             update_player_collision_rect(&player);
 
             /* collision */
             switch (curr_level) {
             case LEVEL_1: {
+                Waypoint target = level1.waypoints.items[level1.waypoints.target];
                 for (size_t i = 0; i < level1.torches.count; i++) {
                     Torch_Flame torch = level1.torches.items[i];
                     bool collision = rectangle_contains_point(torch.rect, cursor.position.x, cursor.position.y);
@@ -579,10 +666,58 @@ int main()
                     if (level1.waypoints.target >= level1.waypoints.count) {
                         curr_level = LEVEL_2;
                         level1.waypoints.target = 0;
+                        player.position = level2.player_start;
+                        switch_player_anim(&player.sprite, PLAYER_ANIM_UP);
                     }
                 }
             } break;
             case LEVEL_2: {
+                /* light the cursor */
+                for (size_t i = 0; i < level2.torches.count; i++) {
+                    /* only allow lighting the cursor if we've reached the first waypoint */
+                    if (level2.waypoints.target < 1) break;
+
+                    Torch_Flame torch = level2.torches.items[i];
+                    bool collision = rectangle_contains_point(torch.rect, cursor.position.x, cursor.position.y);
+                    if (cursor.pressed && collision && torch.active) {
+                        cursor.element = ELEMENT_FIRE;
+                        play_sound(cursor.flame.sound);
+                    }
+                }
+                /* check if lit and trying to light other torch */
+                for (size_t i = 0; i < level2.torches.count; i++) {
+                    Torch_Flame torch = level2.torches.items[i];
+                    bool collision = rectangle_contains_point(torch.rect, cursor.position.x, cursor.position.y);
+                    if (cursor.pressed && collision && !torch.active && cursor.element == ELEMENT_FIRE) {
+                        cursor.element = ELEMENT_NONE;
+                        play_sound(cursor.flame.sound);
+                        level2.torches.items[i].active = true;
+                    }
+                }
+
+                /* check clear condition */
+                size_t sum = 0;
+                for (size_t i = 0; i < level2.torches.count; i++) {
+                    Torch_Flame torch = level2.torches.items[i];
+                    sum += torch.active;
+                }
+                if (sum == level2.torches.count && !level2.clear_condition) {
+                    level2.clear_condition = true;
+                    play_sound(secret_sound);
+                    switch_player_anim(&player.sprite, PLAYER_ANIM_RIGHT);
+                }
+
+                Waypoint target = level2.waypoints.items[level2.waypoints.target];
+                if (rectangle_contains_point(player.rect, target.position.x, target.position.y)) {
+                    switch_player_anim(&player.sprite, target.next_anim);
+                    level2.waypoints.target++;
+                    if (level2.waypoints.target >= level2.waypoints.count) {
+                        curr_level = LEVEL_3;
+                        level2.waypoints.target = 0;
+                        player.position = level2.player_start;
+                        switch_player_anim(&player.sprite, PLAYER_ANIM_UP);
+                    }
+                }
             } break;
             case LEVEL_3:
             /* water collision */
@@ -604,8 +739,8 @@ int main()
                     update_animation(&level1.torches.items[i].sprite, 7);
             } break;
             case LEVEL_2:
-                // for (size_t i = 0; i < level2.torches.count; i++)
-                //     update_animation(&level2.torches.items[i].sprite, 7);
+                for (size_t i = 0; i < level2.torches.count; i++)
+                    update_animation(&level2.torches.items[i].sprite, 7);
             break;
             case LEVEL_3:
             // update_animation(&cursor.water.sprite, 7);
