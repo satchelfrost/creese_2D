@@ -105,14 +105,25 @@ typedef struct {
 } Torch_Flames;
 
 typedef struct {
+    V2i position;
+    Sprite sprite;
+    Rectangle rect;
+} Fountain_Water;
+
+typedef struct {
+    Fountain_Water *items;
+    size_t count;
+    size_t capacity;
+} Fountain_Waters;
+
+typedef struct {
     Torch_Flames torches;
     int torch_padding;
     int torch_scale;
     int torch_flame_scale;
 
-    // TODO: remove
-    V2i water_position;
-    Rectangle water_rect;
+    Fountain_Waters fountains;
+    int foutain_water_scale;
 
     Image image;
     int image_scale;
@@ -129,6 +140,9 @@ typedef struct {
     Image burn_crate_image;
     V2i burn_crate_pos;
     float burn_crate_scale;
+
+    bool fires_extinguished;
+    Rectangle fires_rect;
 } Level;
 
 typedef struct {
@@ -376,6 +390,129 @@ void unload_level2(Level level2)
 // {
 // }
 
+Level load_level3(Sprite water_sprite, Sprite flame_sprite)
+{
+    Level level3 = {0};
+
+    /* resourc allocation which we must free later */
+
+    level3.image = load_image("assets/level3.png");
+    assert(level3.image.data);
+    printf("level 3 image loaded\n");
+    level3.entry_door_image = load_image("assets/level3_entry_door.png");
+    assert(level3.entry_door_image.data);
+    level3.exit_door_image = load_image("assets/level3_exit_door.png");
+    assert(level3.exit_door_image.data);
+
+    level3.image_scale = 2;
+
+    // water fountains
+    level3.foutain_water_scale = 2.0;
+    Fountain_Water fountain1 = {0};
+
+    fountain1.position     = v2i(144, 165);
+    fountain1.sprite       = water_sprite; // cursor is responsible for freeing this
+    fountain1.sprite.scale = level3.foutain_water_scale;
+    fountain1.rect.x       = fountain1.position.x - level3.foutain_water_scale*water_sprite.sub_image.size.x/2;
+    fountain1.rect.y       = fountain1.position.y - level3.foutain_water_scale*water_sprite.sub_image.size.y/2;
+    fountain1.rect.width   = fountain1.sprite.sub_image.size.x*level3.foutain_water_scale;
+    fountain1.rect.height  = fountain1.sprite.sub_image.size.y*level3.foutain_water_scale;
+    da_append(&level3.fountains, fountain1);
+
+    Fountain_Water fountain2 = {0};
+    fountain2.sprite       = water_sprite; // cursor is responsible for freeing this
+    fountain2.sprite.scale = level3.foutain_water_scale;
+    fountain2.position     = v2i(240, 485);
+    fountain2.rect.x       = fountain2.position.x - level3.foutain_water_scale*water_sprite.sub_image.size.x/2;
+    fountain2.rect.y       = fountain2.position.y - level3.foutain_water_scale*water_sprite.sub_image.size.y/2;
+    fountain2.rect.width   = fountain2.sprite.sub_image.size.x*level3.foutain_water_scale;
+    fountain2.rect.height  = fountain2.sprite.sub_image.size.y*level3.foutain_water_scale;
+    da_append(&level3.fountains, fountain2);
+
+    // fires
+    level3.torch_flame_scale = 2.0;
+    Torch_Flame torch1 = {0};
+
+    torch1.position     = v2i(400, 355);
+    torch1.sprite       = flame_sprite; // cursor is responsible for freeing this
+    torch1.sprite.scale = level3.torch_flame_scale;
+    torch1.rect.x       = torch1.position.x - level3.torch_flame_scale*flame_sprite.sub_image.size.x/2;
+    torch1.rect.y       = torch1.position.y - level3.torch_flame_scale*flame_sprite.sub_image.size.y/2;
+    torch1.rect.width   = torch1.sprite.sub_image.size.x*level3.torch_flame_scale;
+    torch1.rect.height  = torch1.sprite.sub_image.size.y*level3.torch_flame_scale;
+    da_append(&level3.torches, torch1);
+
+    Torch_Flame torch2 = {0};
+    torch2.sprite       = flame_sprite; // cursor is responsible for freeing this
+    torch2.sprite.scale = level3.torch_flame_scale;
+    torch2.position     = v2i(400, 315);
+    torch2.rect.x       = torch2.position.x - level3.torch_flame_scale*flame_sprite.sub_image.size.x/2;
+    torch2.rect.y       = torch2.position.y - level3.torch_flame_scale*flame_sprite.sub_image.size.y/2;
+    torch2.rect.width   = torch2.sprite.sub_image.size.x*level3.torch_flame_scale;
+    torch2.rect.height  = torch2.sprite.sub_image.size.y*level3.torch_flame_scale;
+    da_append(&level3.torches, torch2);
+
+    level3.fires_rect.x = torch2.position.x - level3.torch_flame_scale*flame_sprite.sub_image.size.x/2;
+    level3.fires_rect.y = torch2.position.y - level3.torch_flame_scale*flame_sprite.sub_image.size.y/2;
+    level3.fires_rect.width = torch2.sprite.sub_image.size.x*level3.torch_flame_scale;
+    level3.fires_rect.height  = torch2.sprite.sub_image.size.y*level3.torch_flame_scale * 2;    
+
+    // waypoints
+    level3.waypoints.items[0].radius = 5;
+    level3.waypoints.items[0].position = v2i(window_width + 40, 365); // waypoint intentionally offscreen
+    level3.waypoints.items[0].next_anim = PLAYER_ANIM_IDLE;
+    level3.waypoints.count = 1;
+
+    // player start
+    level3.player_start = v2f(110, 365);
+
+    return level3;
+}
+
+void draw_level3(const Level *level3, const Player *player)
+{
+    draw_image_scaled(level3->image, 0, 0, level3->image_scale, level3->image_scale);
+
+    // Fountains
+    for (size_t i = 0; i < level3->fountains.count; i++) {
+        Fountain_Water fountain = level3->fountains.items[i];
+        draw_sprite(fountain.sprite, fountain.rect.x, fountain.rect.y);
+        if (DEBUG) draw_rectangle_lines(fountain.rect, YELLOW);
+    }
+
+    /* player */
+    draw_sprite(player->sprite, player->render_position.x, player->render_position.y);
+    if (DEBUG) draw_rectangle_lines(player->rect, YELLOW);
+
+    // fires
+    if(!level3->fires_extinguished) 
+    {
+        for (size_t i = 0; i < level3->torches.count; i++) {
+            Torch_Flame torch = level3->torches.items[i];
+            draw_sprite(torch.sprite, torch.rect.x, torch.rect.y);
+        }
+        if (DEBUG) draw_rectangle_lines(level3->fires_rect, YELLOW);
+    }
+
+    /* draw door after player */
+    V2i door_pos = v2i(window_width - level3->image_scale*level3->exit_door_image.width, 
+                       (window_height/2 - level3->image_scale*level3->exit_door_image.height/2) + 16);
+    draw_image_scaled(level3->exit_door_image, door_pos.x, door_pos.y, level3->image_scale, level3->image_scale);
+}
+
+void unload_level3(Level level3)
+{
+    unload_image(level3.image);
+    unload_image(level3.exit_door_image);
+    unload_image(level3.entry_door_image);
+}
+
+void reset_level3(Level *level3) 
+{
+    level3->fires_extinguished = false;
+    level3->waypoints.target = 0;
+}
+
 int get_rendered_text_width(Font font, char* text, int text_length) // TODO: contribute
 {
     int width = 0;
@@ -443,6 +580,7 @@ int main()
     /* initialize level */
     Level level1 = load_level1(cursor.flame.sprite, cursor.water.sprite);
     Level level2 = load_level2(cursor.flame.sprite);
+    Level level3 = load_level3(cursor.water.sprite, cursor.flame.sprite);
 
     Font debug_font = load_font("assets/RobotoMono-Medium.ttf", 32);
     Font title_font = load_font("assets/Metamorphous-Regular.ttf", 42);
@@ -551,12 +689,13 @@ int main()
                     player.foot_step = (player.foot_step + 1)%2;
                 }
             }
-            Waypoint target = level1.waypoints.items[level1.waypoints.target];
+            Waypoint target = {0};
             update_player_collision_rect(&player);
-
+            
             /* collision */
             switch (curr_level) {
-            case LEVEL_1: {
+                case LEVEL_1: {
+                target = level1.waypoints.items[level1.waypoints.target];
                 for (size_t i = 0; i < level1.torches.count; i++) {
                     Torch_Flame torch = level1.torches.items[i];
                     bool collision = rectangle_contains_point(torch.rect, cursor.position.x, cursor.position.y);
@@ -585,11 +724,34 @@ int main()
             case LEVEL_2: {
             } break;
             case LEVEL_3:
-            /* water collision */
-            // if (cursor.pressed && rectangle_contains(level1.water_rect, cursor.position.x, cursor.position.y)) {
-            //     cursor.element = ELEMENT_WATER;
-            //     play_sound(cursor.water.sound);
-            // }
+                target = level3.waypoints.items[level3.waypoints.target];
+
+                /* water collision */
+                for (size_t i = 0; i < level3.fountains.count; i++) {
+                    Fountain_Water fount = level3.fountains.items[i];
+                    bool collision = rectangle_contains_point(fount.rect, cursor.position.x, cursor.position.y);
+                    if (cursor.pressed && collision) {
+                        cursor.element = ELEMENT_WATER;
+                        play_sound(cursor.water.sound);
+                    }
+                }
+                bool fire_collision = rectangle_contains_point(level3.fires_rect, cursor.position.x, cursor.position.y);
+                if (cursor.pressed && fire_collision && cursor.element == ELEMENT_WATER) {
+                    level3.fires_extinguished = true;
+                    cursor.element = ELEMENT_NONE;
+                    switch_player_anim(&player.sprite, PLAYER_ANIM_RIGHT);
+                    play_sound(cursor.water.sound);
+                    play_sound(secret_sound);
+                }
+
+                if (rectangle_circle_collision(player.rect, target.position.x, target.position.y, target.radius)) {
+                    switch_player_anim(&player.sprite, target.next_anim);
+                    level3.waypoints.target++;
+                    if (level3.waypoints.target >= level3.waypoints.count) {
+                        curr_level = LEVEL_4;
+                        level3.waypoints.target = 0;
+                    }
+                }
             break;
             case LEVEL_4:
             break;
@@ -608,7 +770,11 @@ int main()
                 //     update_animation(&level2.torches.items[i].sprite, 7);
             break;
             case LEVEL_3:
-            // update_animation(&cursor.water.sprite, 7);
+                for (size_t i = 0; i < level3.fountains.count; i++)
+                    update_animation(&level3.fountains.items[i].sprite, 7);
+
+                for (size_t i = 0; i < level3.torches.count; i++)
+                    update_animation(&level3.torches.items[i].sprite, 7);
             break;
             case LEVEL_4:
             break;
@@ -617,6 +783,7 @@ int main()
 
             /* general animations */
             update_animation(&cursor.flame.sprite, 7);
+            update_animation(&cursor.water.sprite, 7);
             update_animation(&player.sprite, 2);
 
             /* drawing */
@@ -629,6 +796,7 @@ int main()
                     draw_level2(&level2, &player);
                 break;
                 case LEVEL_3:
+                    draw_level3(&level3, &player);
                 break;
                 case LEVEL_4:
                 break;
